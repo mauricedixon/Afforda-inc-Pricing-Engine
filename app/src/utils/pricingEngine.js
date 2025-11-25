@@ -138,7 +138,22 @@ export async function runPricingEngine({ projectId, rows }) {
 
   const lineItems = processRows(rows, materialIndex, laborIndex)
 
-  const payload = lineItems.map((item) => ({ ...item, project_id: projectId }))
+  const payload = lineItems.map((item) => ({
+    project_id: projectId,
+    line_number: item.line_number,
+    description: item.description,
+    item_name: item.item_name,
+    search_name: item.search_name,
+    unit: item.unit,
+    quantity: item.quantity,
+    material_price_id: item.material_price_id,
+    labor_rate_id: item.labor_rate_id,
+    material_cost: item.material_cost,
+    labor_cost: item.labor_cost,
+    total_cost: item.total_cost,
+    matched: item.matched,
+    warnings: item.warnings,
+  }))
 
   await supabase.from('project_line_items').delete().eq('project_id', projectId)
 
@@ -151,4 +166,3 @@ export async function runPricingEngine({ projectId, rows }) {
 
   return lineItems
 }
-
