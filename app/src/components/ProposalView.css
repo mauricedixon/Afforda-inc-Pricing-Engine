@@ -1,0 +1,190 @@
+.proposal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  z-index: 1000;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.proposal-card {
+  background: white;
+  width: 100%;
+  max-width: 800px;
+  min-height: 1000px;
+  padding: 3rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 0.5rem;
+  position: relative;
+}
+
+/* UPDATED: Changed from absolute to flex to prevent overlap */
+.proposal-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 2rem; /* Add space between buttons and header */
+}
+
+.proposal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 3rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 1.5rem;
+}
+
+.proposal-brand {
+  max-width: 200px;
+}
+
+.proposal-logo {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.proposal-meta {
+  text-align: right;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.proposal-section {
+  margin-bottom: 2.5rem;
+}
+
+.proposal-section h2 {
+  font-size: 1.25rem;
+  color: #1e293b;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.5rem;
+}
+
+.proposal-section p {
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.proposal-summary-table,
+.proposal-line-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.proposal-summary-table td,
+.proposal-line-table td,
+.proposal-line-table th {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.proposal-line-table th {
+  font-weight: 600;
+  color: #475569;
+  background-color: #f8fafc;
+}
+
+.proposal-line-table td:last-child,
+.proposal-line-table th:last-child,
+.proposal-summary-table td:last-child {
+  text-align: right;
+}
+
+.proposal-summary-table tr.total td {
+  font-weight: 700;
+  font-size: 1.125rem;
+  border-top: 2px solid #cbd5e1;
+  color: #0f172a;
+}
+
+.proposal-footnote {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+.proposal-footer {
+  margin-top: 4rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.signature-line {
+  margin: 3rem auto;
+  width: 300px;
+  border-top: 1px solid #94a3b8;
+  padding-top: 0.5rem;
+}
+
+/* Print Styles */
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Reset visibility for the proposal container and all its children */
+  .proposal-overlay,
+  .proposal-overlay * {
+    visibility: visible;
+  }
+
+  /* Correctly position the proposal overlay for printing */
+  .proposal-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    background: white;
+    /* Ensure it sits on top of everything else */
+    z-index: 9999;
+    /* Reset flex/grid properties that might interfere with flow */
+    display: block;
+    overflow: visible;
+  }
+
+  /* Ensure the card takes full width and removes shadows/borders for print */
+  .proposal-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0; /* Adjust padding as needed for print margins */
+    box-shadow: none;
+    border: none;
+  }
+
+  /* Hide the controls (Print/Close buttons) */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure main layout containers don't interfere */
+  #root, .shell, .sidebar, .content {
+    display: block; /* Keep them in flow but invisible */
+    position: static;
+    margin: 0;
+    padding: 0;
+    height: auto;
+    overflow: visible;
+  }
+}

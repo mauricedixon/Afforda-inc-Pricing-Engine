@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { supabase } from './services/supabaseClient.js'
 import { getLatestProjectId } from './utils/storage.js'
 import { isMockMode } from './mockData.js'
+import AffordaLogo from './components/AffordaLogo.jsx'
 import './App.css'
 
 const primaryLinks = [
@@ -65,7 +66,7 @@ function App() {
     <div className="shell">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <p className="eyebrow">Afforda Inc.</p>
+          <AffordaLogo className="sidebar-logo" variant="sidebar" />
           <h1>Pricing Engine</h1>
         </div>
 

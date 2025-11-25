@@ -1,4 +1,19 @@
-Item_Name,Unit,Cost_Per_Unit,Full_Description,Vendor
-Vinyl Base,LF,2.55,Roppe Vinyl Base 4",FloorCo
-Tile Flooring,SF,12.2,LVT Flooring Armstrong,FloorCo
-Cove Base,LF,3.1,Cove Base VB,FloorCo
+Item Name,Unit,Cost Per Unit,Full Description,Vendor
+5/8" Type X Drywall (4x8),EA,26.51,5/8" Type X Gypsum Board 4x8 Sheet,Drywall Supply Co
+3-5/8" Metal Stud (20ga) 10',LF,3.60,3-5/8" Metal Stud 20ga 10ft Length,Steel Supply
+#8 x 1-1/4" Drywall Screws (Box),BOX,42.00,#8 x 1-1/4" Drywall Screws per Box,Hardware Store
+Joint Compound (5 gal),EA,38.00,Joint Compound Ready-Mix 5 Gallon,Finish Supply
+Toilet (Commercial Bowl),EA,485.00,Commercial Toilet Bowl Wall-Hung,Plumbing Supply
+Flushometer Valve,EA,195.00,Commercial Flushometer Valve,Plumbing Supply
+Lavatory Faucet (Commercial),EA,125.00,Commercial Lavatory Faucet Single Handle,Plumbing Supply
+3/4" Copper Pipe (Type L),LF,8.25,3/4" Type L Copper Pipe,Plumbing Supply
+3/4" Copper Elbow (90 deg),EA,12.50,3/4" Copper 90 Degree Elbow,Plumbing Supply
+4" PVC Pipe (Sch 40),LF,6.80,4" PVC Schedule 40 Pipe,Plumbing Supply
+LVT Flooring (Commercial),SF,16.85,LVT Commercial Grade Flooring,Flooring Co
+Vinyl Cove Base (4"),LF,4.20,Vinyl Cove Base 4" Height,Flooring Co
+Door Slab (3070 SC Wood),EA,285.00,3070 Solid Core Wood Door Slab,Door Supply
+Hollow Metal Frame (3070),EA,195.00,3070 Hollow Metal Door Frame,Steel Supply
+Door Hardware Set (Office),SET,185.00,Office Door Hardware Set Complete,Hardware Store
+LED Troffer Light (2x2),EA,145.00,LED Troffer Light 2x2 Commercial,Electrical Supply
+Toggle Switch (20A),EA,18.50,20A Toggle Switch Single Pole,Electrical Supply
+Paint (Interior Eggshell),GAL,52.50,Interior Eggshell Paint per Gallon,Paint Supply

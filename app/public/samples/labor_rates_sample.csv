@@ -1,6 +1,17 @@
-Trade,Labor_Type,Hourly_Cost,Crew_Size
-Vinyl Base,Prevailing Wage,65,2
-Vinyl Base,Union,72,2
-Tile Flooring,Prevailing Wage,68,2
-Tile Flooring,Union,75,2
-Default,Prevailing Wage,60,1
+Trade,Labor Type,Hourly Cost,Crew Size
+Drywall,default,47.93,2
+Carpenter,default,47.93,2
+Carpenter,Carpenter - Building Commercial,47.93,2
+Plumber,default,47.93,2
+Plumber,Plumber,47.93,2
+Toilet,default,47.93,2
+Flooring,default,47.93,2
+LVT,default,47.93,2
+Cement,default,47.93,2
+Concrete,default,47.93,2
+Cement,Cement & Concrete Worker,47.93,2
+Concrete,Cement & Concrete Worker,47.93,2
+Door,default,47.93,2
+Light,default,47.93,2
+Paint,default,47.93,2
+Default,default,47.93,1

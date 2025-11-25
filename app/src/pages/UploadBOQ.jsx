@@ -70,7 +70,7 @@ function UploadBOQ({ useLatestProject = false }) {
           description: ['description', 'detail', 'item', 'scope'],
           unit: ['unit', 'units'],
           qty: ['qty', 'quantity'],
-          labor_type: ['labor_type', 'labour_type', 'labor'],
+          labor_type: ['labor_type', 'labour_type', 'labor', 'labor type', 'labour type'],
           unit_price: ['unit_price', 'unit_rate', 'unit_cost'],
           material_amount: ['material', 'material_cost', 'material_amount'],
           labour_amount: ['labour', 'labor', 'labour_cost'],

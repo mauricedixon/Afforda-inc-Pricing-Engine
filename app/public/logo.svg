@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 150">
+  <!-- Abstract A Shape -->
+  <path d="M 60 120 L 100 20 L 140 120 L 120 120 L 100 60 L 80 120 Z" fill="#4FB3F6" />
+  <path d="M 40 140 Q 80 100 160 140" stroke="#4FB3F6" stroke-width="15" fill="none" />
+  
+  <!-- AFFORDA INC Text -->
+  <text x="150" y="90" font-family="Arial, sans-serif" font-weight="bold" font-size="48" fill="black" style="font-style: italic;">AFFORDA INC</text>
+  
+  <!-- CONTRACTING Text -->
+  <text x="300" y="115" font-family="Arial, sans-serif" font-size="18" fill="#C05020" text-anchor="middle">CONTRACTING</text>
+</svg>

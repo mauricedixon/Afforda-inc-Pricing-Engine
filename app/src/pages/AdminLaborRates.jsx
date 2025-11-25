@@ -80,9 +80,26 @@ function AdminLaborRates() {
       return
     }
 
-    const { error } = await supabase.from('labor_rates').upsert(previewRows, {
-      onConflict: 'trade, labor_type',
-    })
+    // Normalize trade and labor_type to lowercase to match unique index (lower(trade), lower(labor_type))
+    const normalizedRows = previewRows.map((row) => ({
+      ...row,
+      trade: row.trade.toLowerCase(),
+      labor_type: row.labor_type.toLowerCase(),
+    }))
+    
+    // Handle upsert manually since unique index uses lower() function
+    // Delete existing rows matching the normalized values, then insert
+    const deletePromises = normalizedRows.map((row) =>
+      supabase
+        .from('labor_rates')
+        .delete()
+        .eq('trade', row.trade)
+        .eq('labor_type', row.labor_type)
+    )
+    
+    await Promise.all(deletePromises)
+    
+    const { error } = await supabase.from('labor_rates').insert(normalizedRows)
     setIsSaving(false)
 
     if (error) {

@@ -5,6 +5,7 @@ import { getLatestProjectId, saveLatestProjectId } from '../utils/storage.js'
 import { exportBOQToExcel } from '../utils/excelExporter.js'
 import { safeNumber } from '../utils/csvParser.js'
 import { isMockMode, mockDb, mockSamples } from '../mockData.js'
+import ProposalView from '../components/ProposalView.jsx'
 
 function ReviewBOQ({ useLatestProject = false }) {
   const params = useParams()
@@ -12,6 +13,7 @@ function ReviewBOQ({ useLatestProject = false }) {
   const [lineItems, setLineItems] = useState([])
   const [status, setStatus] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [showProposal, setShowProposal] = useState(false)
   const fallbackProjectId = isMockMode ? mockSamples.projectId : null
   const projectId = useMemo(() => {
     const sourceId = useLatestProject ? getLatestProjectId() : params.projectId
@@ -110,9 +112,18 @@ function ReviewBOQ({ useLatestProject = false }) {
             {project.project_name} · Profit Margin {Math.round((project.profit_margin ?? 0.2) * 100)}%
           </p>
         )}
-        <button className="button" style={{ marginTop: '1rem' }} onClick={handleExport}>
-          Export Excel
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+          <button className="button" onClick={handleExport}>
+            Export Excel
+          </button>
+          <button
+            className="button"
+            style={{ background: '#475569' }}
+            onClick={() => setShowProposal(true)}
+          >
+            Preview Proposal
+          </button>
+        </div>
       </header>
 
       {status && <p>{status}</p>}
@@ -170,6 +181,10 @@ function ReviewBOQ({ useLatestProject = false }) {
           </table>
         </div>
       </section>
+
+      {showProposal && (
+        <ProposalView project={project} items={lineItems} onClose={() => setShowProposal(false)} />
+      )}
     </div>
   )
 }
