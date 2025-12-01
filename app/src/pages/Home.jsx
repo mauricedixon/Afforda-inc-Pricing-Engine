@@ -49,14 +49,23 @@ function Home() {
     const prepareSummary = (projectData, items) => {
       const material = items.reduce((sum, item) => sum + (item.material_cost ?? 0), 0)
       const labor = items.reduce((sum, item) => sum + (item.labor_cost ?? 0), 0)
-      const subtotal = items.reduce((sum, item) => sum + (item.total_cost ?? 0), 0)
-      const profit = subtotal * (projectData?.profit_margin ?? 0.2)
+      const hardCosts = items.reduce((sum, item) => sum + (item.total_cost ?? 0), 0)
+      const profitMargin = projectData?.profit_margin ?? 0.2
+      const bondRate = projectData?.bond_rate ?? 0.03
+      const totalMarkup = profitMargin + bondRate
+      
+      // Divisor formula: Grand Total = Hard Costs / (1 - Total Markup)
+      const grandTotal = totalMarkup >= 1 ? hardCosts : hardCosts / (1 - totalMarkup)
+      const bondTotal = grandTotal * bondRate
+      const profitTotal = grandTotal * profitMargin
+      
       setProject(projectData)
       setChartTotals({
         material,
         labor,
-        profit,
-        total: subtotal + profit,
+        bond: bondTotal,
+        profit: profitTotal,
+        total: grandTotal,
       })
     }
 
@@ -65,14 +74,17 @@ function Home() {
 
   const chartData = useMemo(() => {
     if (!chartTotals) return []
-    return [
-      { name: 'Material', value: chartTotals.material },
-      { name: 'Labor', value: chartTotals.labor },
-      { name: 'Profit', value: chartTotals.profit },
-    ]
+    // Filter out zero values and ensure all slices are positive
+    const data = [
+      { name: 'Material', value: Math.max(0, chartTotals.material) },
+      { name: 'Labor', value: Math.max(0, chartTotals.labor) },
+      { name: 'Bond', value: Math.max(0, chartTotals.bond) },
+      { name: 'Profit', value: Math.max(0, chartTotals.profit) },
+    ].filter(item => item.value > 0) // Only show slices with positive values
+    return data
   }, [chartTotals])
 
-  const COLORS = ['#4c8ed9', '#ffb347', '#50c878']
+  const COLORS = ['#4c8ed9', '#ffb347', '#9b59b6', '#50c878']
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value ?? 0)
@@ -113,7 +125,8 @@ function Home() {
             {project && (
               <p className="lede">
                 {project.project_name} · Profit Margin{' '}
-                {Math.round((project.profit_margin ?? 0.2) * 100)}%
+                {Math.round((project.profit_margin ?? 0.2) * 100)}% · Bond Rate{' '}
+                {Math.round((project.bond_rate ?? 0.03) * 100)}%
               </p>
             )}
           </header>
@@ -123,16 +136,29 @@ function Home() {
           {!chartTotals && !status && <p>Load a project to see real-time totals.</p>}
 
           {chartTotals && (
-            <div style={{ width: '100%', height: 240 }}>
+            <div style={{ width: '100%', height: 300, padding: '1rem' }}>
               <ResponsiveContainer>
-                <PieChart>
+                <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   <Pie
                     data={chartData}
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={3}
+                    innerRadius={65}
+                    outerRadius={105}
+                    paddingAngle={4}
                     dataKey="value"
-                    label={({ name, value }) => `${name} ${formatCurrency(value)}`}
+                    label={({ name, value, percent }) => {
+                      // Only show label if slice is large enough (> 3%)
+                      if (percent < 0.03) return ''
+                      // Format: Name on first line, value on second line
+                      return `${name}\n${formatCurrency(value)}`
+                    }}
+                    labelLine={{
+                      stroke: '#666',
+                      strokeWidth: 1,
+                      length: 15,
+                      lengthType: 'straight',
+                    }}
+                    cx="50%"
+                    cy="50%"
                   >
                     {chartData.map((entry, index) => (
                       <Cell key={`slice-${entry.name}`} fill={COLORS[index % COLORS.length]} />

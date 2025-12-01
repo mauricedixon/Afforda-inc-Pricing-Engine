@@ -9,9 +9,15 @@ function ProposalView({ project, items, onClose }) {
 
   const material = items.reduce((sum, item) => sum + (item.material_cost ?? 0), 0)
   const labor = items.reduce((sum, item) => sum + (item.labor_cost ?? 0), 0)
-  const subtotal = items.reduce((sum, item) => sum + (item.total_cost ?? 0), 0)
-  const profit = subtotal * (project?.profit_margin ?? 0.2)
-  const grandTotal = subtotal + profit
+  const hardCosts = items.reduce((sum, item) => sum + (item.total_cost ?? 0), 0)
+  const profitMargin = project?.profit_margin ?? 0.2
+  const bondRate = project?.bond_rate ?? 0.03
+  const totalMarkup = profitMargin + bondRate
+  
+  // Divisor formula: Grand Total = Hard Costs / (1 - Total Markup)
+  const grandTotal = totalMarkup >= 1 ? hardCosts : hardCosts / (1 - totalMarkup)
+  const bondTotal = grandTotal * bondRate
+  const profitTotal = grandTotal * profitMargin
 
   const today = new Intl.DateTimeFormat('en-US', {
     month: 'long',
@@ -69,8 +75,16 @@ function ProposalView({ project, items, onClose }) {
                 <td>{formatCurrency(labor)}</td>
               </tr>
               <tr>
-                <td>Profit ({Math.round((project.profit_margin ?? 0.2) * 100)}%)</td>
-                <td>{formatCurrency(profit)}</td>
+                <td>Subtotal (Hard Costs)</td>
+                <td>{formatCurrency(hardCosts)}</td>
+              </tr>
+              <tr>
+                <td>Bond ({Math.round(bondRate * 100)}%)</td>
+                <td>{formatCurrency(bondTotal)}</td>
+              </tr>
+              <tr>
+                <td>Profit ({Math.round(profitMargin * 100)}%)</td>
+                <td>{formatCurrency(profitTotal)}</td>
               </tr>
               <tr className="total">
                 <td>Grand Total</td>

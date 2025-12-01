@@ -99,6 +99,7 @@ const sampleProject = {
   id: SAMPLE_PROJECT_ID,
   project_name: 'Sample Demo Project',
   profit_margin: 0.2,
+  bond_rate: 0.03,
   status: 'demo',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
@@ -125,11 +126,12 @@ export const mockDb = {
     mockState.materialPrices = clone(rows)
   },
   listProjects: () => clone(mockState.projects),
-  createProject: ({ project_name, profit_margin }) => {
+  createProject: ({ project_name, profit_margin, bond_rate = 0.03 }) => {
     const project = {
       id: crypto.randomUUID ? crypto.randomUUID() : `demo-${Date.now()}`,
       project_name,
       profit_margin,
+      bond_rate,
       status: 'demo',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

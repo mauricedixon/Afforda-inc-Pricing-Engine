@@ -6,6 +6,17 @@ export function exportBOQToExcel({ project, lineItems }) {
     throw new Error('Project and line items are required for export')
   }
 
+  // Calculate totals using divisor formula
+  const hardCosts = lineItems.reduce((sum, item) => sum + (item.total_cost ?? 0), 0)
+  const profitMargin = project.profit_margin ?? 0.2
+  const bondRate = project.bond_rate ?? 0.03
+  const totalMarkup = profitMargin + bondRate
+  
+  // Divisor formula: Grand Total = Hard Costs / (1 - Total Markup)
+  const grandTotal = totalMarkup >= 1 ? hardCosts : hardCosts / (1 - totalMarkup)
+  const bondTotal = grandTotal * bondRate
+  const profitTotal = grandTotal * profitMargin
+
   const headers = [
     'Description',
     'Unit',
@@ -13,12 +24,10 @@ export function exportBOQToExcel({ project, lineItems }) {
     'Material Cost',
     'Labour Cost',
     'Total Cost',
-    `${Math.round((project.profit_margin ?? 0.2) * 100)}% Profit`,
     'Matched?',
   ]
 
   const rows = lineItems.map((item) => {
-    const profit = item.total_cost * (project.profit_margin ?? 0.2)
     return [
       item.description,
       item.unit,
@@ -26,12 +35,27 @@ export function exportBOQToExcel({ project, lineItems }) {
       toCurrency(item.material_cost),
       toCurrency(item.labor_cost),
       toCurrency(item.total_cost),
-      toCurrency(profit),
       item.matched ? 'Yes' : 'Manual Review',
     ]
   })
 
-  const sheet = XLSX.utils.aoa_to_sheet([['Project', project.project_name], headers, ...rows])
+  // Add summary section
+  const summaryRows = [
+    [],
+    ['Summary'],
+    ['Subtotal (Hard Costs)', '', '', '', '', toCurrency(hardCosts), ''],
+    [`Bond (${Math.round(bondRate * 100)}%)`, '', '', '', '', toCurrency(bondTotal), ''],
+    [`Profit (${Math.round(profitMargin * 100)}%)`, '', '', '', '', toCurrency(profitTotal), ''],
+    ['Grand Total', '', '', '', '', toCurrency(grandTotal), ''],
+  ]
+
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ['Project', project.project_name],
+    [],
+    headers,
+    ...rows,
+    ...summaryRows,
+  ])
   autoFitColumns(sheet, headers.length)
 
   const workbook = XLSX.utils.book_new()

@@ -57,6 +57,7 @@ create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
   project_name text not null,
   profit_margin numeric(5,4) not null default 0.20,
+  bond_rate numeric(5,4) not null default 0.03,
   status text not null default 'draft',
   notes text,
   created_at timestamptz not null default now(),

@@ -7,6 +7,7 @@ import { isMockMode, mockDb } from '../mockData.js'
 function NewProject() {
   const [projectName, setProjectName] = useState('')
   const [profitMargin, setProfitMargin] = useState(20)
+  const [bondRate, setBondRate] = useState(3)
   const [status, setStatus] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
@@ -24,6 +25,7 @@ function NewProject() {
       const project = mockDb.createProject({
         project_name: projectName.trim(),
         profit_margin: Number(profitMargin) / 100,
+        bond_rate: Number(bondRate) / 100,
       })
       saveLatestProjectId(project.id)
       setStatus('Project created! Redirecting…')
@@ -37,6 +39,7 @@ function NewProject() {
       .insert({
         project_name: projectName.trim(),
         profit_margin: Number(profitMargin) / 100,
+        bond_rate: Number(bondRate) / 100,
       })
       .select()
       .single()
@@ -58,7 +61,7 @@ function NewProject() {
         <p className="eyebrow">Pricing Workflow</p>
         <h1>New Project</h1>
         <p className="lede">
-          Each BOQ belongs to a project. Set the title and default profit margin for downstream
+          Each BOQ belongs to a project. Set the title, profit margin, and bond rate for downstream
           calculations.
         </p>
       </header>
@@ -84,6 +87,18 @@ function NewProject() {
             step={0.5}
             value={profitMargin}
             onChange={(event) => setProfitMargin(event.target.value)}
+          />
+        </label>
+
+        <label>
+          Bond Rate (%)
+          <input
+            type="number"
+            min={0}
+            max={10}
+            step={0.1}
+            value={bondRate}
+            onChange={(event) => setBondRate(event.target.value)}
           />
         </label>
 
