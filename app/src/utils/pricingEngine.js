@@ -166,3 +166,25 @@ export async function runPricingEngine({ projectId, rows }) {
 
   return lineItems
 }
+
+export function calculateGrandTotal({ lineItems = [], profitMargin = 0.2, bondRate = 0.03 }) {
+  const hardCosts = lineItems.reduce((sum, item) => sum + (item.total_cost ?? 0), 0)
+  const material = lineItems.reduce((sum, item) => sum + (item.material_cost ?? 0), 0)
+  const labor = lineItems.reduce((sum, item) => sum + (item.labor_cost ?? 0), 0)
+  
+  const totalMarkup = profitMargin + bondRate
+
+  // Divisor formula: Grand Total = Hard Costs / (1 - Total Markup)
+  const grandTotal = totalMarkup >= 1 ? hardCosts : hardCosts / (1 - totalMarkup)
+  const bondTotal = grandTotal * bondRate
+  const profitTotal = grandTotal * profitMargin
+
+  return {
+    hardCosts,
+    material,
+    labor,
+    bond: bondTotal,
+    profit: profitTotal,
+    grandTotal,
+  }
+}

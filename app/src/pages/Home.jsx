@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../services/supabaseClient.js'
 import { getLatestProjectId } from '../utils/storage.js'
 import { isMockMode, mockDb, mockSamples } from '../mockData.js'
+import { calculateGrandTotal } from '../utils/pricingEngine.js'
 import {
   PieChart,
   Pie,
@@ -12,77 +13,117 @@ import {
   Legend,
   Tooltip,
 } from 'recharts'
+import DashboardMetrics from '../components/DashboardMetrics.jsx'
+import HistoryChart from '../components/HistoryChart.jsx'
+import ProjectHistoryList from '../components/ProjectHistoryList.jsx'
 
 function Home() {
-  const [project, setProject] = useState(null)
+  const [projects, setProjects] = useState([])
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  
+  // Selected Project for Pie Chart Snapshot
+  const [selectedProjectId, setSelectedProjectId] = useState(null)
+  const [selectedProject, setSelectedProject] = useState(null)
   const [chartTotals, setChartTotals] = useState(null)
+  
   const [status, setStatus] = useState('')
 
+  // 1. Fetch All Projects (for History/Metrics)
   useEffect(() => {
-    const latestId = getLatestProjectId() ?? (isMockMode ? mockSamples.projectId : null)
-    if (!latestId) return
-
-    const fetchSummary = async () => {
+    const fetchProjects = async () => {
       try {
         if (isMockMode) {
-          const mockProject = mockDb.getProjectById(latestId)
-          const mockItems = mockDb.getProjectLineItems(latestId)
-          if (!mockProject || !mockItems) return
-          prepareSummary(mockProject, mockItems)
+          const allProjects = mockDb.listProjects()
+          setProjects(allProjects)
+          // Default to latest project
+          if (allProjects.length > 0) {
+             const sorted = [...allProjects].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+             setSelectedProjectId(sorted[0].id)
+          }
+          return
+        }
+
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false })
+        
+        if (error) throw error
+        setProjects(data || [])
+        if (data && data.length > 0) {
+            // Check local storage for latest, otherwise first in list
+            const storedId = getLatestProjectId()
+            const found = data.find(p => p.id === storedId)
+            setSelectedProjectId(found ? found.id : data[0].id)
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error)
+        setStatus('Failed to load project history.')
+      }
+    }
+    fetchProjects()
+  }, [])
+
+  // 2. Fetch Details for Selected Project (for Pie Chart)
+  useEffect(() => {
+    if (!selectedProjectId) return
+
+    const fetchProjectDetails = async () => {
+      try {
+        if (isMockMode) {
+          const mockProject = mockDb.getProjectById(selectedProjectId)
+          const mockItems = mockDb.getProjectLineItems(selectedProjectId)
+          if (mockProject) {
+             setSelectedProject(mockProject)
+             prepareSummary(mockProject, mockItems)
+          }
           return
         }
 
         const [{ data: projectData, error: projectError }, { data: lineItems, error: itemsError }] =
           await Promise.all([
-            supabase.from('projects').select('*').eq('id', latestId).single(),
-            supabase.from('project_line_items').select('*').eq('project_id', latestId),
+            supabase.from('projects').select('*').eq('id', selectedProjectId).single(),
+            supabase.from('project_line_items').select('*').eq('project_id', selectedProjectId),
           ])
 
         if (projectError) throw projectError
         if (itemsError) throw itemsError
-        if (!projectData || !lineItems) return
+        
+        setSelectedProject(projectData)
         prepareSummary(projectData, lineItems)
       } catch (error) {
-        setStatus(error.message)
+        console.error(error)
+        // Don't show global error for this, just maybe clear chart
       }
     }
 
     const prepareSummary = (projectData, items) => {
-      const material = items.reduce((sum, item) => sum + (item.material_cost ?? 0), 0)
-      const labor = items.reduce((sum, item) => sum + (item.labor_cost ?? 0), 0)
-      const hardCosts = items.reduce((sum, item) => sum + (item.total_cost ?? 0), 0)
-      const profitMargin = projectData?.profit_margin ?? 0.2
-      const bondRate = projectData?.bond_rate ?? 0.03
-      const totalMarkup = profitMargin + bondRate
-      
-      // Divisor formula: Grand Total = Hard Costs / (1 - Total Markup)
-      const grandTotal = totalMarkup >= 1 ? hardCosts : hardCosts / (1 - totalMarkup)
-      const bondTotal = grandTotal * bondRate
-      const profitTotal = grandTotal * profitMargin
-      
-      setProject(projectData)
+        const calculations = calculateGrandTotal({
+            lineItems: items || [], 
+            profitMargin: projectData.profit_margin ?? 0.2, 
+            bondRate: projectData.bond_rate ?? 0.03
+        })
+
       setChartTotals({
-        material,
-        labor,
-        bond: bondTotal,
-        profit: profitTotal,
-        total: grandTotal,
+        material: calculations.material,
+        labor: calculations.labor,
+        bond: calculations.bond,
+        profit: calculations.profit,
+        total: calculations.grandTotal,
       })
     }
 
-    fetchSummary()
-  }, [])
+    fetchProjectDetails()
+  }, [selectedProjectId])
 
-  const chartData = useMemo(() => {
+  const pieChartData = useMemo(() => {
     if (!chartTotals) return []
-    // Filter out zero values and ensure all slices are positive
-    const data = [
+    return [
       { name: 'Material', value: Math.max(0, chartTotals.material) },
       { name: 'Labor', value: Math.max(0, chartTotals.labor) },
       { name: 'Bond', value: Math.max(0, chartTotals.bond) },
       { name: 'Profit', value: Math.max(0, chartTotals.profit) },
-    ].filter(item => item.value > 0) // Only show slices with positive values
-    return data
+    ].filter(item => item.value > 0)
   }, [chartTotals])
 
   const COLORS = ['#4c8ed9', '#ffb347', '#9b59b6', '#50c878']
@@ -90,134 +131,115 @@ function Home() {
   const formatCurrency = (value) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value ?? 0)
 
+  const handleDateChange = (offset) => {
+    const newDate = new Date(selectedDate)
+    newDate.setMonth(newDate.getMonth() + offset)
+    setSelectedDate(newDate)
+  }
+
   return (
     <div>
-      <header>
-        <p className="eyebrow">Welcome back</p>
-        <h1>Centralized Pricing Engine</h1>
-        <p className="lede">
-          Upload the cleaned labor + material spreadsheets once, then price every BOQ from a single
-          workflow. You&apos;re always a few clicks away from an export-ready bid package.
-        </p>
+      <header style={{ marginBottom: '2rem' }}>
+        <p className="eyebrow">Overview</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+                <h1>Dashboard</h1>
+                <p className="lede">
+                Track your pricing volume, proposal activity, and recent bids.
+                </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#fff', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <button 
+                    onClick={() => handleDateChange(-1)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.5rem', fontSize: '1.2rem' }}
+                >
+                    ‹
+                </button>
+                <span style={{ fontWeight: 600, minWidth: '120px', textAlign: 'center' }}>
+                    {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </span>
+                <button 
+                    onClick={() => handleDateChange(1)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.5rem', fontSize: '1.2rem' }}
+                >
+                    ›
+                </button>
+            </div>
+        </div>
       </header>
 
-      <section className="dashboard-grid">
+      <DashboardMetrics projects={projects} selectedDate={selectedDate} />
+
+      <section className="dashboard-grid" style={{ gridTemplateColumns: '1.5fr 1fr', marginBottom: '2rem' }}>
         <article className="panel">
-          <h2>Start a Project</h2>
-          <p>Kick off a new bid and capture the project profit margin up front.</p>
-          <Link to="/pricing/new-project" className="button">
-            Create project
-          </Link>
+            <header style={{ marginBottom: '1rem' }}>
+                <h2>Monthly Volume</h2>
+                <p>Total value of BOQs uploaded in {selectedDate.toLocaleDateString('en-US', { month: 'long' })}</p>
+            </header>
+            <HistoryChart projects={projects} selectedDate={selectedDate} />
         </article>
 
-        <article className="panel">
-          <h2>Upload BOQ</h2>
-          <p>Drop in the latest takeoff sheet to price it with the central data.</p>
-          <Link to="/pricing/project/latest/upload" className="button">
-            Upload takeoff
-          </Link>
-        </article>
-      </section>
-
-      <section className="dashboard-grid">
         <article className="panel" style={{ minHeight: '320px' }}>
           <header style={{ marginBottom: '1rem' }}>
-            <h2>Latest Bid Snapshot</h2>
-            {project && (
-              <p className="lede">
-                {project.project_name} · Profit Margin{' '}
-                {Math.round((project.profit_margin ?? 0.2) * 100)}% · Bond Rate{' '}
-                {Math.round((project.bond_rate ?? 0.03) * 100)}%
+            <h2>Bid Snapshot</h2>
+            {selectedProject ? (
+              <p className="lede" style={{ fontSize: '0.9rem' }}>
+                {selectedProject.project_name}
+                <br/>
+                <span style={{ opacity: 0.7 }}>
+                    Margin {Math.round((selectedProject.profit_margin ?? 0.2) * 100)}% · Bond {Math.round((selectedProject.bond_rate ?? 0.03) * 100)}%
+                </span>
               </p>
+            ) : (
+                <p>Select a project to view breakdown.</p>
             )}
           </header>
 
-          {status && <p className="warning">{status}</p>}
-
-          {!chartTotals && !status && <p>Load a project to see real-time totals.</p>}
-
-          {chartTotals && (
-            <div style={{ width: '100%', height: 300, padding: '1rem' }}>
+          {chartTotals ? (
+            <div style={{ width: '100%', height: 240 }}>
               <ResponsiveContainer>
-                <PieChart margin={{ top: 30, right: 30, bottom: 30, left: 30 }}>
+                <PieChart>
                   <Pie
-                    data={chartData}
-                    innerRadius={65}
-                    outerRadius={105}
+                    data={pieChartData}
+                    innerRadius={50}
+                    outerRadius={80}
                     paddingAngle={4}
                     dataKey="value"
-                    label={({ name, value, percent }) => {
-                      // Smart threshold: hide labels on slices < 6%
-                      if (percent < 0.06) return ''
-                      // Format: Name on first line, value on second line
-                      return `${name}\n${formatCurrency(value)}`
-                    }}
-                    labelLine={{
-                      stroke: '#666',
-                      strokeWidth: 1,
-                      length: 28,
-                      lengthType: 'straight',
-                    }}
-                    activeShape={(props) => {
-                      // Enhanced hover view: slightly larger and highlighted
-                      const {
-                        cx,
-                        cy,
-                        innerRadius,
-                        outerRadius,
-                        startAngle,
-                        endAngle,
-                        fill,
-                        payload,
-                      } = props
-                      return (
-                        <g>
-                          <Sector
-                            cx={cx}
-                            cy={cy}
-                            innerRadius={innerRadius}
-                            outerRadius={outerRadius + 5}
-                            startAngle={startAngle}
-                            endAngle={endAngle}
-                            fill={fill}
-                            opacity={0.9}
-                          />
-                        </g>
-                      )
-                    }}
                     cx="50%"
-                    cy="45%"
+                    cy="50%"
                   >
-                    {chartData.map((entry, index) => (
+                    {pieChartData.map((entry, index) => (
                       <Cell key={`slice-${entry.name}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(value, name) => [
-                      formatCurrency(value),
-                      name,
-                    ]}
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px',
-                      padding: '8px',
-                    }}
-                  />
-                  <Legend wrapperStyle={{ marginTop: '1.5rem' }} />
+                  <Tooltip formatter={(value) => formatCurrency(value)} />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+              <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
                 <p className="eyebrow">Grand Total</p>
-                <p style={{ fontSize: '1.5rem', fontWeight: 600 }}>{formatCurrency(chartTotals.total)}</p>
+                <p style={{ fontSize: '1.25rem', fontWeight: 600 }}>{formatCurrency(chartTotals.total)}</p>
               </div>
+            </div>
+          ) : (
+            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                No data available
             </div>
           )}
         </article>
+      </section>
+
+      <section>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2>Project History</h2>
+            <Link to="/pricing/new-project" className="button">
+                + New Project
+            </Link>
+        </div>
+        <ProjectHistoryList projects={projects} selectedDate={selectedDate} />
       </section>
     </div>
   )
 }
 
 export default Home
-

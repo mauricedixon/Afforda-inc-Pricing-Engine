@@ -6,6 +6,7 @@ import { exportBOQToExcel } from '../utils/excelExporter.js'
 import { safeNumber } from '../utils/csvParser.js'
 import { isMockMode, mockDb, mockSamples } from '../mockData.js'
 import ProposalView from '../components/ProposalView.jsx'
+import { calculateGrandTotal } from '../utils/pricingEngine.js'
 
 function ReviewBOQ({ useLatestProject = false }) {
   const params = useParams()
@@ -94,21 +95,17 @@ function ReviewBOQ({ useLatestProject = false }) {
   }, [fetchData, projectId])
 
   const totals = useMemo(() => {
-    const hardCosts = lineItems.reduce((sum, item) => sum + (item.total_cost ?? 0), 0)
-    const profitMargin = localProfitMargin / 100
-    const bondRate = localBondRate / 100
-    const totalMarkup = profitMargin + bondRate
-    
-    // Divisor formula: Grand Total = Hard Costs / (1 - Total Markup)
-    const grandTotal = totalMarkup >= 1 ? hardCosts : hardCosts / (1 - totalMarkup)
-    const bondTotal = grandTotal * bondRate
-    const profitTotal = grandTotal * profitMargin
+    const calculations = calculateGrandTotal({
+        lineItems, 
+        profitMargin: localProfitMargin / 100, 
+        bondRate: localBondRate / 100
+    })
     
     return {
-      subtotal: hardCosts,
-      bond: bondTotal,
-      profit: profitTotal,
-      grandTotal,
+      subtotal: calculations.hardCosts,
+      bond: calculations.bond,
+      profit: calculations.profit,
+      grandTotal: calculations.grandTotal,
       unmatched: lineItems.filter((item) => !item.matched).length,
     }
   }, [lineItems, localBondRate, localProfitMargin])
@@ -120,9 +117,19 @@ function ReviewBOQ({ useLatestProject = false }) {
     const bondRateDecimal = Number(newBondRate) / 100
     const profitMarginDecimal = Number(newProfitMargin) / 100
     
+    // Recalculate total value to save to DB
+    const { grandTotal } = calculateGrandTotal({
+        lineItems,
+        profitMargin: profitMarginDecimal,
+        bondRate: bondRateDecimal
+    })
+
     if (isMockMode) {
-      // Update mock project
-      const updatedProject = { ...project, bond_rate: bondRateDecimal, profit_margin: profitMarginDecimal }
+      const updatedProject = mockDb.updateProject(projectId, {
+         bond_rate: bondRateDecimal, 
+         profit_margin: profitMarginDecimal,
+         total_value: grandTotal
+      })
       setProject(updatedProject)
       setIsUpdating(false)
       return
@@ -133,6 +140,7 @@ function ReviewBOQ({ useLatestProject = false }) {
       .update({
         bond_rate: bondRateDecimal,
         profit_margin: profitMarginDecimal,
+        total_value: grandTotal
       })
       .eq('id', projectId)
     
@@ -143,7 +151,7 @@ function ReviewBOQ({ useLatestProject = false }) {
       return
     }
     
-    setProject({ ...project, bond_rate: bondRateDecimal, profit_margin: profitMarginDecimal })
+    setProject((prev) => ({ ...prev, bond_rate: bondRateDecimal, profit_margin: profitMarginDecimal, total_value: grandTotal }))
   }
 
   const handleBondRateChange = (value) => {
@@ -193,16 +201,29 @@ function ReviewBOQ({ useLatestProject = false }) {
     const bondRateDecimal = Number(editProjectForm.bond_rate) / 100
     const profitMarginDecimal = Number(editProjectForm.profit_margin) / 100
 
+    // Recalculate total value
+    const { grandTotal } = calculateGrandTotal({
+        lineItems,
+        profitMargin: profitMarginDecimal,
+        bondRate: bondRateDecimal
+    })
+
     const updates = {
       project_name: editProjectForm.project_name,
       status: editProjectForm.status,
       profit_margin: profitMarginDecimal,
       bond_rate: bondRateDecimal,
       notes: editProjectForm.notes,
+      total_value: grandTotal,
+    }
+
+    // If changing to approved, set submitted_at
+    if (editProjectForm.status === 'approved' && project.status !== 'approved') {
+        updates.submitted_at = new Date().toISOString()
     }
 
     if (isMockMode) {
-      const updatedProject = { ...project, ...updates }
+      const updatedProject = mockDb.updateProject(projectId, updates)
       setProject(updatedProject)
       setLocalBondRate(editProjectForm.bond_rate)
       setLocalProfitMargin(editProjectForm.profit_margin)

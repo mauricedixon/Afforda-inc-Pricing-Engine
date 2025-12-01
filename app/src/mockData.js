@@ -95,20 +95,55 @@ const sampleBOQRows = [
   },
 ]
 
-const sampleProject = {
-  id: SAMPLE_PROJECT_ID,
-  project_name: 'Sample Demo Project',
-  profit_margin: 0.2,
-  bond_rate: 0.03,
-  status: 'demo',
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
+// Generate past dates for history testing
+const daysAgo = (n) => {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return d.toISOString()
+}
+
+const generateMockProjects = () => {
+  const statuses = ['draft', 'review', 'approved', 'rejected']
+  const projects = []
+  
+  // Create 15 past projects
+  for (let i = 0; i < 15; i++) {
+    const days = Math.floor(Math.random() * 45) // Past 45 days
+    const status = statuses[Math.floor(Math.random() * statuses.length)]
+    const value = 15000 + Math.floor(Math.random() * 85000) // 15k - 100k
+    
+    projects.push({
+      id: `mock-hist-${i}`,
+      project_name: `Project ${String(i + 1).padStart(3, '0')} - ${status.toUpperCase()}`,
+      profit_margin: 0.2,
+      bond_rate: 0.03,
+      status,
+      total_value: value,
+      created_at: daysAgo(days),
+      submitted_at: status === 'approved' ? daysAgo(days - 1) : null,
+      updated_at: daysAgo(days),
+    })
+  }
+  
+  // Add the main demo project
+  projects.push({
+    id: SAMPLE_PROJECT_ID,
+    project_name: 'Sample Demo Project',
+    profit_margin: 0.2,
+    bond_rate: 0.03,
+    status: 'draft',
+    total_value: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  })
+  
+  return projects
 }
 
 const mockState = {
   laborRates: [...sampleLaborRates],
   materialPrices: [...sampleMaterialPrices],
-  projects: [sampleProject],
+  projects: generateMockProjects(),
   projectLineItems: {
     [SAMPLE_PROJECT_ID]: [],
   },
@@ -132,7 +167,8 @@ export const mockDb = {
       project_name,
       profit_margin,
       bond_rate,
-      status: 'demo',
+      status: 'draft',
+      total_value: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
@@ -141,6 +177,14 @@ export const mockDb = {
     return clone(project)
   },
   getProjectById: (id) => clone(mockState.projects.find((project) => project.id === id)),
+  updateProject: (id, updates) => {
+    const idx = mockState.projects.findIndex(p => p.id === id)
+    if (idx > -1) {
+        mockState.projects[idx] = { ...mockState.projects[idx], ...updates, updated_at: new Date().toISOString() }
+        return clone(mockState.projects[idx])
+    }
+    return null
+  },
   saveProjectLineItems: (projectId, items) => {
     mockState.projectLineItems[projectId] = clone(items)
   },
@@ -151,4 +195,3 @@ export const mockSamples = {
   boqRows: sampleBOQRows,
   projectId: SAMPLE_PROJECT_ID,
 }
-
