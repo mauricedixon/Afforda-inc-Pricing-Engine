@@ -17,6 +17,17 @@ function ReviewBOQ({ useLatestProject = false }) {
   const [localBondRate, setLocalBondRate] = useState(3)
   const [localProfitMargin, setLocalProfitMargin] = useState(20)
   const [isUpdating, setIsUpdating] = useState(false)
+
+  // Edit Project State
+  const [showEditProjectModal, setShowEditProjectModal] = useState(false)
+  const [editProjectForm, setEditProjectForm] = useState({
+    project_name: '',
+    status: 'draft',
+    profit_margin: 20,
+    bond_rate: 3,
+    notes: '',
+  })
+
   const fallbackProjectId = isMockMode ? mockSamples.projectId : null
   const projectId = useMemo(() => {
     const sourceId = useLatestProject ? getLatestProjectId() : params.projectId
@@ -160,6 +171,64 @@ function ReviewBOQ({ useLatestProject = false }) {
     }
   }
 
+  const openEditModal = () => {
+    if (!project) return
+    setEditProjectForm({
+      project_name: project.project_name,
+      status: project.status ?? 'draft',
+      profit_margin: localProfitMargin,
+      bond_rate: localBondRate,
+      notes: project.notes ?? '',
+    })
+    setShowEditProjectModal(true)
+  }
+
+  const handleSaveProject = async () => {
+    if (!editProjectForm.project_name.trim()) {
+      alert('Project name is required')
+      return
+    }
+
+    setIsUpdating(true)
+    const bondRateDecimal = Number(editProjectForm.bond_rate) / 100
+    const profitMarginDecimal = Number(editProjectForm.profit_margin) / 100
+
+    const updates = {
+      project_name: editProjectForm.project_name,
+      status: editProjectForm.status,
+      profit_margin: profitMarginDecimal,
+      bond_rate: bondRateDecimal,
+      notes: editProjectForm.notes,
+    }
+
+    if (isMockMode) {
+      const updatedProject = { ...project, ...updates }
+      setProject(updatedProject)
+      setLocalBondRate(editProjectForm.bond_rate)
+      setLocalProfitMargin(editProjectForm.profit_margin)
+      setShowEditProjectModal(false)
+      setIsUpdating(false)
+      return
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update(updates)
+      .eq('id', projectId)
+
+    if (error) {
+      setStatus(`Error updating project: ${error.message}`)
+      setIsUpdating(false)
+      return
+    }
+
+    setProject((prev) => ({ ...prev, ...updates }))
+    setLocalBondRate(editProjectForm.bond_rate)
+    setLocalProfitMargin(editProjectForm.profit_margin)
+    setShowEditProjectModal(false)
+    setIsUpdating(false)
+  }
+
   if (isLoading) return <p>Loading…</p>
   if (!projectId) return <p>Create or select a project first.</p>
 
@@ -167,7 +236,16 @@ function ReviewBOQ({ useLatestProject = false }) {
     <div>
       <header>
         <p className="eyebrow">Pricing Workflow</p>
-        <h1>Review BOQ</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <h1>Review BOQ</h1>
+          <button
+            className="button"
+            style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', height: 'auto' }}
+            onClick={openEditModal}
+          >
+            Edit Project
+          </button>
+        </div>
         {project && (
           <div>
             <p className="lede">
@@ -279,6 +357,112 @@ function ReviewBOQ({ useLatestProject = false }) {
         </div>
       </section>
 
+      {showEditProjectModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999,
+          }}
+        >
+          <div
+            className="panel"
+            style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            <h2>Edit Project</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+              <label>
+                Project Name
+                <input
+                  type="text"
+                  value={editProjectForm.project_name}
+                  onChange={(e) =>
+                    setEditProjectForm({ ...editProjectForm, project_name: e.target.value })
+                  }
+                  style={{ width: '100%', marginTop: '0.25rem' }}
+                />
+              </label>
+
+              <label>
+                Status
+                <select
+                  value={editProjectForm.status}
+                  onChange={(e) =>
+                    setEditProjectForm({ ...editProjectForm, status: e.target.value })
+                  }
+                  style={{ width: '100%', marginTop: '0.25rem', padding: '0.5rem' }}
+                >
+                  <option value="draft">Draft</option>
+                  <option value="review">Review</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <label>
+                  Profit Margin (%)
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={editProjectForm.profit_margin}
+                    onChange={(e) =>
+                      setEditProjectForm({ ...editProjectForm, profit_margin: e.target.value })
+                    }
+                    style={{ width: '100%', marginTop: '0.25rem' }}
+                  />
+                </label>
+                <label>
+                  Bond Rate (%)
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editProjectForm.bond_rate}
+                    onChange={(e) =>
+                      setEditProjectForm({ ...editProjectForm, bond_rate: e.target.value })
+                    }
+                    style={{ width: '100%', marginTop: '0.25rem' }}
+                  />
+                </label>
+              </div>
+
+              <label>
+                Notes
+                <textarea
+                  rows="4"
+                  value={editProjectForm.notes}
+                  onChange={(e) =>
+                    setEditProjectForm({ ...editProjectForm, notes: e.target.value })
+                  }
+                  style={{ width: '100%', marginTop: '0.25rem', padding: '0.5rem' }}
+                />
+              </label>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+                <button
+                  className="button"
+                  style={{ background: '#64748b' }}
+                  onClick={() => setShowEditProjectModal(false)}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </button>
+                <button className="button" onClick={handleSaveProject} disabled={isUpdating}>
+                  {isUpdating ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showProposal && (
         <ProposalView
           project={{
@@ -298,4 +482,3 @@ const formatCurrency = (value) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value ?? 0)
 
 export default ReviewBOQ
-

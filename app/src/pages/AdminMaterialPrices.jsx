@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../services/supabaseClient.js'
 import { parseCsvFile, validateColumns, safeNumber } from '../utils/csvParser.js'
 import { normalizeName } from '../utils/pricingEngine.js'
@@ -10,6 +10,20 @@ function AdminMaterialPrices() {
   const [status, setStatus] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Search State
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [materialForm, setMaterialForm] = useState({
+    item_name: '',
+    unit: '',
+    cost_per_unit: '',
+    vendor: '',
+    full_description: '',
+  })
 
   const refreshMaterials = async () => {
     if (isMockMode) {
@@ -65,7 +79,7 @@ function AdminMaterialPrices() {
     }
   }
 
-  const handleSave = async () => {
+  const handleBulkSave = async () => {
     if (!previewRows.length) {
       setStatus('Upload a CSV before saving.')
       return
@@ -96,6 +110,118 @@ function AdminMaterialPrices() {
     await refreshMaterials()
   }
 
+  // --- CRUD Logic ---
+
+  const openAddModal = () => {
+    setEditingId(null)
+    setMaterialForm({
+      item_name: '',
+      unit: 'EA',
+      cost_per_unit: '',
+      vendor: '',
+      full_description: '',
+    })
+    setIsModalOpen(true)
+    setStatus('')
+  }
+
+  const openEditModal = (item) => {
+    setEditingId(item.id)
+    setMaterialForm({
+      item_name: item.item_name,
+      unit: item.unit,
+      cost_per_unit: item.cost_per_unit,
+      vendor: item.vendor ?? '',
+      full_description: item.full_description ?? '',
+    })
+    setIsModalOpen(true)
+    setStatus('')
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this material?')) return
+
+    if (isMockMode) {
+      setStatus('Delete not supported in mock mode.')
+      return
+    }
+
+    const { error } = await supabase.from('material_prices').delete().eq('id', id)
+
+    if (error) {
+      setStatus(`Error deleting material: ${error.message}`)
+    } else {
+      setStatus('Material deleted.')
+      refreshMaterials()
+    }
+  }
+
+  const handleSaveMaterial = async () => {
+    if (!materialForm.item_name || !materialForm.unit || !materialForm.cost_per_unit) {
+      alert('Item Name, Unit, and Cost are required.')
+      return
+    }
+
+    setIsSaving(true)
+
+    const searchName = normalizeName(materialForm.item_name)
+    const payload = {
+      item_name: materialForm.item_name,
+      search_name: searchName,
+      unit: materialForm.unit,
+      cost_per_unit: Number(materialForm.cost_per_unit),
+      vendor: materialForm.vendor || null,
+      full_description: materialForm.full_description || null,
+    }
+
+    if (isMockMode) {
+      setStatus('Save not supported in mock mode for single entry.')
+      setIsSaving(false)
+      setIsModalOpen(false)
+      return
+    }
+
+    let error = null
+
+    if (editingId) {
+      // Update
+      const { error: updateError } = await supabase
+        .from('material_prices')
+        .update(payload)
+        .eq('id', editingId)
+      error = updateError
+    } else {
+      // Insert
+      const { error: insertError } = await supabase.from('material_prices').insert([payload])
+      error = insertError
+    }
+
+    setIsSaving(false)
+
+    if (error) {
+      if (error.code === '23505') {
+        setStatus('Error: A material with this name (search key) already exists.')
+      } else {
+        setStatus(`Error saving material: ${error.message}`)
+      }
+      return
+    }
+
+    setStatus(editingId ? 'Material updated.' : 'Material added.')
+    setIsModalOpen(false)
+    refreshMaterials()
+  }
+
+  const filteredMaterials = useMemo(() => {
+    if (!searchQuery) return materials
+    const lowerQ = searchQuery.toLowerCase()
+    return materials.filter(
+      (m) =>
+        m.item_name.toLowerCase().includes(lowerQ) ||
+        (m.vendor && m.vendor.toLowerCase().includes(lowerQ))
+    )
+  }, [materials, searchQuery])
+
   return (
     <div>
       <header>
@@ -119,10 +245,10 @@ function AdminMaterialPrices() {
           Expected columns: <code>Item_Name</code>, <code>Unit</code>, <code>Cost_Per_Unit</code>,
           optional <code>Full_Description</code>, <code>Vendor</code>
         </p>
-        <button className="button" disabled={isSaving} onClick={handleSave}>
+        <button className="button" disabled={isSaving} onClick={handleBulkSave}>
           {isSaving ? 'Saving…' : 'Save to database'}
         </button>
-        {status && <p>{status}</p>}
+        {status && <p style={{ marginTop: '0.5rem' }}>{status}</p>}
       </section>
 
       {previewRows.length > 0 && (
@@ -154,7 +280,22 @@ function AdminMaterialPrices() {
       )}
 
       <section style={{ marginTop: '2.5rem' }}>
-        <h3>Current Materials</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+          <h3>Current Materials</h3>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <input
+              type="text"
+              placeholder="Search Item or Vendor..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+            />
+            <button className="button" onClick={openAddModal}>
+              Add Material
+            </button>
+          </div>
+        </div>
+
         {isLoading ? (
           <p>Loading…</p>
         ) : (
@@ -167,16 +308,33 @@ function AdminMaterialPrices() {
                   <th>Cost / Unit</th>
                   <th>Vendor</th>
                   <th>Updated</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {materials.map((material) => (
+                {filteredMaterials.map((material) => (
                   <tr key={material.id}>
                     <td>{material.item_name}</td>
                     <td>{material.unit}</td>
                     <td>${safeNumber(material.cost_per_unit).toFixed(2)}</td>
                     <td>{material.vendor ?? '—'}</td>
                     <td>{new Date(material.updated_at).toLocaleDateString()}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => openEditModal(material)}
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', cursor: 'pointer' }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(material.id)}
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', cursor: 'pointer', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -184,9 +342,93 @@ function AdminMaterialPrices() {
           </div>
         )}
       </section>
+
+      {isModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999,
+          }}
+        >
+          <div className="panel" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2>{editingId ? 'Edit Material' : 'Add Material'}</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+              <label>
+                Item Name
+                <input
+                  type="text"
+                  value={materialForm.item_name}
+                  onChange={(e) => setMaterialForm({ ...materialForm, item_name: e.target.value })}
+                  style={{ width: '100%', marginTop: '0.25rem' }}
+                />
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <label>
+                  Unit
+                  <input
+                    type="text"
+                    value={materialForm.unit}
+                    onChange={(e) => setMaterialForm({ ...materialForm, unit: e.target.value })}
+                    style={{ width: '100%', marginTop: '0.25rem' }}
+                  />
+                </label>
+                <label>
+                  Cost / Unit ($)
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={materialForm.cost_per_unit}
+                    onChange={(e) => setMaterialForm({ ...materialForm, cost_per_unit: e.target.value })}
+                    style={{ width: '100%', marginTop: '0.25rem' }}
+                  />
+                </label>
+              </div>
+              <label>
+                Vendor
+                <input
+                  type="text"
+                  value={materialForm.vendor}
+                  onChange={(e) => setMaterialForm({ ...materialForm, vendor: e.target.value })}
+                  style={{ width: '100%', marginTop: '0.25rem' }}
+                />
+              </label>
+              <label>
+                Full Description
+                <textarea
+                  rows="3"
+                  value={materialForm.full_description}
+                  onChange={(e) => setMaterialForm({ ...materialForm, full_description: e.target.value })}
+                  style={{ width: '100%', marginTop: '0.25rem', padding: '0.5rem' }}
+                />
+              </label>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+                <button
+                  className="button"
+                  style={{ background: '#64748b' }}
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+                <button className="button" onClick={handleSaveMaterial} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 export default AdminMaterialPrices
-
