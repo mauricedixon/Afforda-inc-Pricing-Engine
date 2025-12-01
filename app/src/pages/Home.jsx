@@ -7,6 +7,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Sector,
   ResponsiveContainer,
   Legend,
   Tooltip,
@@ -138,7 +139,7 @@ function Home() {
           {chartTotals && (
             <div style={{ width: '100%', height: 300, padding: '1rem' }}>
               <ResponsiveContainer>
-                <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <PieChart margin={{ top: 30, right: 30, bottom: 30, left: 30 }}>
                   <Pie
                     data={chartData}
                     innerRadius={65}
@@ -146,26 +147,64 @@ function Home() {
                     paddingAngle={4}
                     dataKey="value"
                     label={({ name, value, percent }) => {
-                      // Only show label if slice is large enough (> 3%)
-                      if (percent < 0.03) return ''
+                      // Smart threshold: hide labels on slices < 6%
+                      if (percent < 0.06) return ''
                       // Format: Name on first line, value on second line
                       return `${name}\n${formatCurrency(value)}`
                     }}
                     labelLine={{
                       stroke: '#666',
                       strokeWidth: 1,
-                      length: 15,
+                      length: 28,
                       lengthType: 'straight',
                     }}
+                    activeShape={(props) => {
+                      // Enhanced hover view: slightly larger and highlighted
+                      const {
+                        cx,
+                        cy,
+                        innerRadius,
+                        outerRadius,
+                        startAngle,
+                        endAngle,
+                        fill,
+                        payload,
+                      } = props
+                      return (
+                        <g>
+                          <Sector
+                            cx={cx}
+                            cy={cy}
+                            innerRadius={innerRadius}
+                            outerRadius={outerRadius + 5}
+                            startAngle={startAngle}
+                            endAngle={endAngle}
+                            fill={fill}
+                            opacity={0.9}
+                          />
+                        </g>
+                      )
+                    }}
                     cx="50%"
-                    cy="50%"
+                    cy="45%"
                   >
                     {chartData.map((entry, index) => (
                       <Cell key={`slice-${entry.name}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value)} />
-                  <Legend />
+                  <Tooltip
+                    formatter={(value, name) => [
+                      formatCurrency(value),
+                      name,
+                    ]}
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      padding: '8px',
+                    }}
+                  />
+                  <Legend wrapperStyle={{ marginTop: '1.5rem' }} />
                 </PieChart>
               </ResponsiveContainer>
               <div style={{ marginTop: '1rem', textAlign: 'center' }}>
