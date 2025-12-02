@@ -105,3 +105,5 @@ function HistoryChart({ projects = [], selectedDate = new Date() }) {
 }
 
 export default HistoryChart
+
+

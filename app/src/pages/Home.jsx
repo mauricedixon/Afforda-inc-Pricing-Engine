@@ -230,7 +230,7 @@ function Home() {
       </section>
 
       <section>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div className="flex justify-between items-center mb-4">
             <h2>Project History</h2>
             <Link to="/pricing/new-project" className="button">
                 + New Project

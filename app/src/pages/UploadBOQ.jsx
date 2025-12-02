@@ -156,7 +156,7 @@ function UploadBOQ({ useLatestProject = false }) {
       </header>
 
       <section className="panel" style={{ marginTop: '1.5rem' }}>
-        <h2>Upload CSV</h2>
+        <h2>Upload Excel/ CSV</h2>
         <input type="file" accept=".csv,.xlsx" onChange={handleFileChange} />
         <p className="helper-text">
           Required columns: <code>Description</code>, <code>Unit</code>, <code>Qty</code>. Optional{' '}

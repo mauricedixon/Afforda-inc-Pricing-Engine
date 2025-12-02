@@ -234,7 +234,7 @@ function AdminMaterialPrices() {
       </header>
 
       <section className="panel" style={{ marginTop: '1.5rem' }}>
-        <h2>Upload CSV</h2>
+        <h2>Upload Excel/ CSV</h2>
         {isMockMode && (
           <p className="helper-text">
             Demo mode enabled. Uploads stay in-memory so you can experiment safely.
