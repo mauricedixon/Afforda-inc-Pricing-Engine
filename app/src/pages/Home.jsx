@@ -101,7 +101,8 @@ function Home() {
         const calculations = calculateGrandTotal({
             lineItems: items || [], 
             profitMargin: projectData.profit_margin ?? 0.2, 
-            bondRate: projectData.bond_rate ?? 0.03
+            bondRate: projectData.bond_rate ?? 0.03,
+            generalRequirements: projectData.general_requirements ?? 0
         })
 
       setChartTotals({

@@ -26,6 +26,7 @@ function ReviewBOQ({ useLatestProject = false }) {
     status: 'draft',
     profit_margin: 20,
     bond_rate: 3,
+    general_requirements: 0,
     notes: '',
   })
 
@@ -98,7 +99,8 @@ function ReviewBOQ({ useLatestProject = false }) {
     const calculations = calculateGrandTotal({
         lineItems, 
         profitMargin: localProfitMargin / 100, 
-        bondRate: localBondRate / 100
+        bondRate: localBondRate / 100,
+        generalRequirements: project?.general_requirements ?? 0
     })
     
     return {
@@ -121,7 +123,8 @@ function ReviewBOQ({ useLatestProject = false }) {
     const { grandTotal } = calculateGrandTotal({
         lineItems,
         profitMargin: profitMarginDecimal,
-        bondRate: bondRateDecimal
+        bondRate: bondRateDecimal,
+        generalRequirements: project?.general_requirements ?? 0
     })
 
     if (isMockMode) {
@@ -186,6 +189,7 @@ function ReviewBOQ({ useLatestProject = false }) {
       status: project.status ?? 'draft',
       profit_margin: localProfitMargin,
       bond_rate: localBondRate,
+      general_requirements: project.general_requirements ?? 0,
       notes: project.notes ?? '',
     })
     setShowEditProjectModal(true)
@@ -200,12 +204,14 @@ function ReviewBOQ({ useLatestProject = false }) {
     setIsUpdating(true)
     const bondRateDecimal = Number(editProjectForm.bond_rate) / 100
     const profitMarginDecimal = Number(editProjectForm.profit_margin) / 100
+    const generalRequirements = Number(editProjectForm.general_requirements)
 
     // Recalculate total value
     const { grandTotal } = calculateGrandTotal({
         lineItems,
         profitMargin: profitMarginDecimal,
-        bondRate: bondRateDecimal
+        bondRate: bondRateDecimal,
+        generalRequirements
     })
 
     const updates = {
@@ -213,6 +219,7 @@ function ReviewBOQ({ useLatestProject = false }) {
       status: editProjectForm.status,
       profit_margin: profitMarginDecimal,
       bond_rate: bondRateDecimal,
+      general_requirements: generalRequirements,
       notes: editProjectForm.notes,
       total_value: grandTotal,
     }
@@ -427,7 +434,7 @@ function ReviewBOQ({ useLatestProject = false }) {
                 </select>
               </label>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <label>
                   Profit Margin (%)
                   <input
@@ -448,6 +455,18 @@ function ReviewBOQ({ useLatestProject = false }) {
                     value={editProjectForm.bond_rate}
                     onChange={(e) =>
                       setEditProjectForm({ ...editProjectForm, bond_rate: e.target.value })
+                    }
+                    style={{ width: '100%', marginTop: '0.25rem' }}
+                  />
+                </label>
+                <label>
+                  Gen. Req ($)
+                  <input
+                    type="number"
+                    step="100"
+                    value={editProjectForm.general_requirements}
+                    onChange={(e) =>
+                      setEditProjectForm({ ...editProjectForm, general_requirements: e.target.value })
                     }
                     style={{ width: '100%', marginTop: '0.25rem' }}
                   />

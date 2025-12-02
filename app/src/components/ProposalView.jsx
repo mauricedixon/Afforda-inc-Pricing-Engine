@@ -10,12 +10,14 @@ function ProposalView({ project, items, onClose }) {
   const material = items.reduce((sum, item) => sum + (item.material_cost ?? 0), 0)
   const labor = items.reduce((sum, item) => sum + (item.labor_cost ?? 0), 0)
   const hardCosts = items.reduce((sum, item) => sum + (item.total_cost ?? 0), 0)
+  const generalRequirements = project?.general_requirements ?? 0
   const profitMargin = project?.profit_margin ?? 0.2
   const bondRate = project?.bond_rate ?? 0.03
   const totalMarkup = profitMargin + bondRate
   
-  // Divisor formula: Grand Total = Hard Costs / (1 - Total Markup)
-  const grandTotal = totalMarkup >= 1 ? hardCosts : hardCosts / (1 - totalMarkup)
+  // Divisor formula: Grand Total = (Hard Costs + Soft Costs) / (1 - Total Markup)
+  const totalCostBasis = hardCosts + generalRequirements
+  const grandTotal = totalMarkup >= 1 ? totalCostBasis : totalCostBasis / (1 - totalMarkup)
   const bondTotal = grandTotal * bondRate
   const profitTotal = grandTotal * profitMargin
 
@@ -77,6 +79,10 @@ function ProposalView({ project, items, onClose }) {
               <tr>
                 <td>Subtotal (Hard Costs)</td>
                 <td>{formatCurrency(hardCosts)}</td>
+              </tr>
+              <tr>
+                <td>General Requirements (Soft Costs)</td>
+                <td>{formatCurrency(generalRequirements)}</td>
               </tr>
               <tr>
                 <td>Bond ({Math.round(bondRate * 100)}%)</td>

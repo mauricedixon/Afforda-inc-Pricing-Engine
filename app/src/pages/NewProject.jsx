@@ -8,6 +8,7 @@ function NewProject() {
   const [projectName, setProjectName] = useState('')
   const [profitMargin, setProfitMargin] = useState(20)
   const [bondRate, setBondRate] = useState(3)
+  const [generalRequirements, setGeneralRequirements] = useState(0)
   const [status, setStatus] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
@@ -26,6 +27,7 @@ function NewProject() {
         project_name: projectName.trim(),
         profit_margin: Number(profitMargin) / 100,
         bond_rate: Number(bondRate) / 100,
+        general_requirements: Number(generalRequirements),
       })
       saveLatestProjectId(project.id)
       setStatus('Project created! Redirecting…')
@@ -40,6 +42,7 @@ function NewProject() {
         project_name: projectName.trim(),
         profit_margin: Number(profitMargin) / 100,
         bond_rate: Number(bondRate) / 100,
+        general_requirements: Number(generalRequirements),
       })
       .select()
       .single()
@@ -75,6 +78,20 @@ function NewProject() {
             value={projectName}
             onChange={(event) => setProjectName(event.target.value)}
             required
+          />
+        </label>
+
+        <label>
+          General Requirements ($)
+          <span className="helper-text" style={{ display: 'block', fontSize: '0.8rem', color: '#666', marginBottom: '0.25rem' }}>
+            Fixed soft costs (Mobilization, Insurance, Supervision)
+          </span>
+          <input
+            type="number"
+            min={0}
+            step={100}
+            value={generalRequirements}
+            onChange={(event) => setGeneralRequirements(event.target.value)}
           />
         </label>
 

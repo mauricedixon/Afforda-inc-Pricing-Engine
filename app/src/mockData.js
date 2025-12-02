@@ -117,6 +117,7 @@ const generateMockProjects = () => {
       project_name: `Project ${String(i + 1).padStart(3, '0')} - ${status.toUpperCase()}`,
       profit_margin: 0.2,
       bond_rate: 0.03,
+      general_requirements: Math.floor(Math.random() * 5000),
       status,
       total_value: value,
       created_at: daysAgo(days),
@@ -131,6 +132,7 @@ const generateMockProjects = () => {
     project_name: 'Sample Demo Project',
     profit_margin: 0.2,
     bond_rate: 0.03,
+    general_requirements: 2500,
     status: 'draft',
     total_value: 0,
     created_at: new Date().toISOString(),
@@ -161,12 +163,13 @@ export const mockDb = {
     mockState.materialPrices = clone(rows)
   },
   listProjects: () => clone(mockState.projects),
-  createProject: ({ project_name, profit_margin, bond_rate = 0.03 }) => {
+  createProject: ({ project_name, profit_margin, bond_rate = 0.03, general_requirements = 0 }) => {
     const project = {
       id: crypto.randomUUID ? crypto.randomUUID() : `demo-${Date.now()}`,
       project_name,
       profit_margin,
       bond_rate,
+      general_requirements,
       status: 'draft',
       total_value: 0,
       created_at: new Date().toISOString(),
