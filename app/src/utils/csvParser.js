@@ -218,6 +218,9 @@ export function validateColumns(rows, requiredColumns) {
 }
 
 export const safeNumber = (value, fallback = 0) => {
+  if (typeof value === 'string') {
+    value = value.replace(/[$,\s]/g, '')
+  }
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
 }

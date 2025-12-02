@@ -85,16 +85,26 @@ export function calculateLineItem({
   const laborType = normalizeName(row.labor_type ?? defaultLaborType)
   const labor = determineLaborRate(laborIndex, searchName, laborType)
 
-  const materialCost = material ? safeNumber(material.cost_per_unit, 0) * quantity : null
+  const materialCost =
+    row.material_cost !== null
+      ? row.material_cost
+      : material
+      ? safeNumber(material.cost_per_unit, 0) * quantity
+      : null
   const laborHours = estimateLaborHours(unit, quantity)
   const hourlyRate = labor ? safeNumber(labor.hourly_cost, 0) * (labor.crew_size ?? 1) : null
-  const laborCost = hourlyRate != null ? hourlyRate * laborHours : null
+  const laborCost =
+    row.labor_cost !== null
+      ? row.labor_cost
+      : hourlyRate != null
+      ? hourlyRate * laborHours
+      : null
 
-  const totalCost = (materialCost ?? 0) + (laborCost ?? 0)
+  const totalCost = row.total_cost !== null ? row.total_cost : (materialCost ?? 0) + (laborCost ?? 0)
   const warnings = []
 
-  if (!material) warnings.push('material_not_found')
-  if (!labor) warnings.push('labor_not_found')
+  if (materialCost === null) warnings.push('material_not_found')
+  if (laborCost === null) warnings.push('labor_not_found')
 
   return {
     line_number: lineNumber,

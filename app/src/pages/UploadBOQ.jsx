@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../services/supabaseClient.js'
 import { parseCsvFile, validateColumns, safeNumber } from '../utils/csvParser.js'
-import { runPricingEngine, buildLaborIndex, buildMaterialIndex, processRows } from '../utils/pricingEngine.js'
+import { runPricingEngine, buildLaborIndex, buildMaterialIndex, processRows, calculateGrandTotal } from '../utils/pricingEngine.js'
 import { getLatestProjectId, saveLatestProjectId } from '../utils/storage.js'
 import { isMockMode, mockDb, mockSamples } from '../mockData.js'
 
@@ -93,6 +93,9 @@ function UploadBOQ({ useLatestProject = false }) {
           qty: safeNumber(row.qty ?? row.quantity ?? row.length ?? 0),
           labor_type: row.labor_type,
           item_name: row.item_name ?? row.description,
+          material_cost: safeNumber(row.material_amount, null),
+          labor_cost: safeNumber(row.labour_amount, null),
+          total_cost: safeNumber(row.total_price, null),
         }))
       setRows(normalized)
       setStatus(`Loaded ${normalized.length} rows from ${file.name}`)
@@ -122,9 +125,49 @@ function UploadBOQ({ useLatestProject = false }) {
         const laborIndex = buildLaborIndex(laborRates)
         const lineItems = processRows(rows, materialIndex, laborIndex)
         mockDb.saveProjectLineItems(projectId, lineItems)
+
+        // Calculate and save initial total
+        const profitMargin = Number(project.profit_margin ?? 0.2)
+        const bondRate = Number(project.bond_rate ?? 0.03)
+        const generalRequirements = Number(project.general_requirements ?? 0)
+
+        const { grandTotal } = calculateGrandTotal({
+          lineItems,
+          profitMargin,
+          bondRate,
+          generalRequirements,
+        })
+
+        const finalTotal = Number.isFinite(grandTotal) ? grandTotal : 0
+        mockDb.updateProject(projectId, { total_value: finalTotal })
+
         navigate(`/pricing/project/${projectId}/review`)
       } else {
-        await runPricingEngine({ projectId, rows })
+        const lineItems = await runPricingEngine({ projectId, rows })
+
+        // Calculate and save initial total
+        const profitMargin = Number(project.profit_margin ?? 0.2)
+        const bondRate = Number(project.bond_rate ?? 0.03)
+        const generalRequirements = Number(project.general_requirements ?? 0)
+
+        const { grandTotal } = calculateGrandTotal({
+          lineItems,
+          profitMargin,
+          bondRate,
+          generalRequirements,
+        })
+
+        const finalTotal = Number.isFinite(grandTotal) ? grandTotal : 0
+
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({ total_value: finalTotal })
+          .eq('id', projectId)
+
+        if (updateError) {
+          throw new Error(`Failed to update project total: ${updateError.message}`)
+        }
+
         navigate(`/pricing/project/${projectId}/review`)
       }
     } catch (error) {
