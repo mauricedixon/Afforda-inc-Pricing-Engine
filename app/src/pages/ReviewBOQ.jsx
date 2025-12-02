@@ -277,11 +277,11 @@ function ReviewBOQ({ useLatestProject = false }) {
         {project && (
           <div>
             <p className="lede">
-              {project.project_name} · Profit Margin {localProfitMargin}% · Bond Rate {localBondRate}%
+              {project.project_name} · O&P {localProfitMargin}% · Bond Rate {localBondRate}%
             </p>
             <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>Profit Margin:</span>
+                <span>Overhead and Profit:</span>
                 <input
                   type="number"
                   min={0}
@@ -436,7 +436,7 @@ function ReviewBOQ({ useLatestProject = false }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <label>
-                  Profit Margin (%)
+                  Overhead and Profit (%)
                   <input
                     type="number"
                     step="0.5"

@@ -89,7 +89,7 @@ function ProposalView({ project, items, onClose }) {
                 <td>{formatCurrency(bondTotal)}</td>
               </tr>
               <tr>
-                <td>Profit ({Math.round(profitMargin * 100)}%)</td>
+                <td>Overhead and Profit ({Math.round(profitMargin * 100)}%)</td>
                 <td>{formatCurrency(profitTotal)}</td>
               </tr>
               <tr className="total">

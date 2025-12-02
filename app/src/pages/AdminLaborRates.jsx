@@ -58,7 +58,17 @@ function AdminLaborRates() {
     if (!file) return
 
     try {
-      const rows = await parseCsvFile(file)
+      const rows = await parseCsvFile(file, {
+        detectHeader: true,
+        requiredHeaders: ['trade', 'labor_type', 'hourly_cost'],
+        customAliases: {
+          trade: ['trade', 'trade_name', 'category', 'division'],
+          labor_type: ['labor_type', 'type', 'labor', 'classification', 'labor type'],
+          hourly_cost: ['hourly_cost', 'rate', 'hourly_rate', 'cost', 'price', 'labor_rate', 'hourly cost'],
+          crew_size: ['crew_size', 'crew', 'size', 'count', 'crew size'],
+          notes: ['notes', 'comments', 'description', 'memo'],
+        },
+      })
       validateColumns(rows, ['trade', 'labor_type', 'hourly_cost'])
       setPreviewRows(
         rows

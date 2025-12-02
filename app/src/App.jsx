@@ -81,7 +81,7 @@ function App() {
                 <span className="status-pill">{projectStatus}</span>
               </div>
               <p className="helper-text">
-                Profit Margin:{' '}
+                Overhead and Profit:{' '}
                 <strong>{Math.round((currentProject.profit_margin ?? 0.2) * 100)}%</strong>
               </p>
               <div className="project-actions">

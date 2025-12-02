@@ -59,7 +59,26 @@ function AdminMaterialPrices() {
     if (!file) return
 
     try {
-      const rows = await parseCsvFile(file)
+      const rows = await parseCsvFile(file, {
+        detectHeader: true,
+        requiredHeaders: ['item_name', 'unit', 'cost_per_unit'],
+        customAliases: {
+          item_name: ['item_name', 'item', 'name', 'material', 'description', 'product', 'item name'],
+          unit: ['unit', 'uom', 'units'],
+          cost_per_unit: [
+            'cost_per_unit',
+            'cost',
+            'price',
+            'unit_price',
+            'rate',
+            'material_cost',
+            'cost per unit',
+            'unit cost',
+          ],
+          vendor: ['vendor', 'supplier', 'source'],
+          full_description: ['full_description', 'details', 'notes', 'full description'],
+        },
+      })
       validateColumns(rows, ['item_name', 'unit', 'cost_per_unit'])
       setPreviewRows(
         rows

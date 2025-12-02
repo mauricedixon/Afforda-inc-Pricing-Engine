@@ -123,7 +123,7 @@ function Home() {
       { name: 'Material', value: Math.max(0, chartTotals.material) },
       { name: 'Labor', value: Math.max(0, chartTotals.labor) },
       { name: 'Bond', value: Math.max(0, chartTotals.bond) },
-      { name: 'Profit', value: Math.max(0, chartTotals.profit) },
+      { name: 'O&P', value: Math.max(0, chartTotals.profit) },
     ].filter(item => item.value > 0)
   }, [chartTotals])
 
@@ -188,7 +188,7 @@ function Home() {
                 {selectedProject.project_name}
                 <br/>
                 <span style={{ opacity: 0.7 }}>
-                    Margin {Math.round((selectedProject.profit_margin ?? 0.2) * 100)}% · Bond {Math.round((selectedProject.bond_rate ?? 0.03) * 100)}%
+                    O&P {Math.round((selectedProject.profit_margin ?? 0.2) * 100)}% · Bond {Math.round((selectedProject.bond_rate ?? 0.03) * 100)}%
                 </span>
               </p>
             ) : (

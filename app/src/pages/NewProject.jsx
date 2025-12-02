@@ -96,7 +96,7 @@ function NewProject() {
         </label>
 
         <label>
-          Profit Margin (%)
+          Overhead and Profit (%)
           <input
             type="number"
             min={0}
