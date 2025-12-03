@@ -6,6 +6,7 @@ import { exportBOQToExcel } from '../utils/excelExporter.js'
 import { safeNumber } from '../utils/csvParser.js'
 import { isMockMode, mockDb, mockSamples } from '../mockData.js'
 import ProposalView from '../components/ProposalView.jsx'
+import LineItemModal from '../components/LineItemModal.jsx'
 import { calculateGrandTotal } from '../utils/pricingEngine.js'
 
 function ReviewBOQ({ useLatestProject = false }) {
@@ -29,6 +30,10 @@ function ReviewBOQ({ useLatestProject = false }) {
     general_requirements: 0,
     notes: '',
   })
+
+  // Line Item Edit State
+  const [selectedLineItem, setSelectedLineItem] = useState(null)
+  const [showLineItemModal, setShowLineItemModal] = useState(false)
 
   const fallbackProjectId = isMockMode ? mockSamples.projectId : null
   const projectId = useMemo(() => {
@@ -257,6 +262,60 @@ function ReviewBOQ({ useLatestProject = false }) {
     setIsUpdating(false)
   }
 
+  const handleLineItemClick = (item) => {
+    setSelectedLineItem(item)
+    setShowLineItemModal(true)
+  }
+
+  const handleSaveLineItem = async (updatedItem) => {
+    setIsUpdating(true)
+    
+    // Optimistic UI update
+    const updatedItems = lineItems.map(i => i.id === updatedItem.id ? updatedItem : i)
+    setLineItems(updatedItems)
+    
+    if (isMockMode) {
+        // For mock mode, we just update local state as mockDb doesn't have granular item update
+        setShowLineItemModal(false)
+        setIsUpdating(false)
+        return
+    }
+
+    const { error } = await supabase
+        .from('project_line_items')
+        .update({
+            material_cost: updatedItem.material_cost,
+            labor_cost: updatedItem.labor_cost,
+            total_cost: updatedItem.total_cost,
+            matched: updatedItem.matched,
+            warnings: updatedItem.warnings
+        })
+        .eq('id', updatedItem.id)
+
+    if (error) {
+        setStatus(`Failed to update item: ${error.message}`)
+        // Revert optimistic update could be done here if needed
+    } else {
+        // Also update the project total value since line item changed
+        const { grandTotal } = calculateGrandTotal({
+            lineItems: updatedItems,
+            profitMargin: localProfitMargin / 100,
+            bondRate: localBondRate / 100,
+            generalRequirements: project?.general_requirements ?? 0
+        })
+        
+        await supabase
+            .from('projects')
+            .update({ total_value: grandTotal })
+            .eq('id', projectId)
+            
+        setProject(prev => ({ ...prev, total_value: grandTotal }))
+    }
+    
+    setIsUpdating(false)
+    setShowLineItemModal(false)
+  }
+
   if (isLoading) return <p>Loading…</p>
   if (!projectId) return <p>Create or select a project first.</p>
 
@@ -369,7 +428,14 @@ function ReviewBOQ({ useLatestProject = false }) {
             </thead>
             <tbody>
               {lineItems.map((item) => (
-                <tr key={item.id} className={!item.matched ? 'warning' : ''}>
+                <tr
+                  key={item.id}
+                  className={!item.matched ? 'warning' : ''}
+                  onClick={() => handleLineItemClick(item)}
+                  style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '')}
+                >
                   <td>{item.line_number}</td>
                   <td>{item.description}</td>
                   <td>{item.unit}</td>
@@ -377,7 +443,26 @@ function ReviewBOQ({ useLatestProject = false }) {
                   <td>{formatCurrency(safeNumber(item.material_cost))}</td>
                   <td>{formatCurrency(safeNumber(item.labor_cost))}</td>
                   <td>{formatCurrency(safeNumber(item.total_cost))}</td>
-                  <td>{item.matched ? 'Yes' : 'Review'}</td>
+                  <td>
+                    {item.matched ? (
+                      <span style={{ color: '#16a34a', fontWeight: 500 }}>Yes</span>
+                    ) : (
+                      <button
+                        style={{
+                          background: '#fff7ed',
+                          color: '#ea580c',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontWeight: 500,
+                          border: '1px solid #fed7aa',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        Review
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -512,6 +597,15 @@ function ReviewBOQ({ useLatestProject = false }) {
           }}
           items={lineItems}
           onClose={() => setShowProposal(false)}
+        />
+      )}
+
+      {showLineItemModal && selectedLineItem && (
+        <LineItemModal
+          item={selectedLineItem}
+          onClose={() => setShowLineItemModal(false)}
+          onSave={handleSaveLineItem}
+          isUpdating={isUpdating}
         />
       )}
     </div>
