@@ -13,8 +13,42 @@ import {
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value ?? 0)
 
-function HistoryChart({ projects = [], selectedDate = new Date() }) {
+function HistoryChart({ projects = [], selectedDate = new Date(), viewMode = 'monthly' }) {
   const chartData = useMemo(() => {
+    if (viewMode === 'weekly') {
+      const startOfWeek = new Date(selectedDate)
+      startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay())
+      startOfWeek.setHours(0, 0, 0, 0)
+
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 7)
+
+      // Initialize 7 days
+      const weeklyData = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(startOfWeek)
+        d.setDate(startOfWeek.getDate() + i)
+        return {
+          day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+          value: 0,
+          count: 0,
+          date: d.toLocaleDateString()
+        }
+      })
+
+      projects.forEach(p => {
+        const d = new Date(p.created_at)
+        if (d >= startOfWeek && d < endOfWeek) {
+            const dayIndex = d.getDay() // 0 (Sun) to 6 (Sat)
+            if (weeklyData[dayIndex]) {
+                weeklyData[dayIndex].value += (Number(p.total_value) || 0)
+                weeklyData[dayIndex].count += 1
+            }
+        }
+      })
+      return weeklyData
+    }
+
+    // Default: Monthly
     const year = selectedDate.getFullYear()
     const month = selectedDate.getMonth()
     const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -40,7 +74,7 @@ function HistoryChart({ projects = [], selectedDate = new Date() }) {
     })
 
     return dailyData
-  }, [projects, selectedDate])
+  }, [projects, selectedDate, viewMode])
 
   return (
     <div style={{ width: '100%', height: 300 }}>

@@ -27,6 +27,7 @@ function Home() {
   const [chartTotals, setChartTotals] = useState(null)
   
   const [status, setStatus] = useState('')
+  const [viewMode, setViewMode] = useState('monthly') // 'weekly' | 'monthly'
 
   // 1. Fetch All Projects (for History/Metrics)
   useEffect(() => {
@@ -134,8 +135,26 @@ function Home() {
 
   const handleDateChange = (offset) => {
     const newDate = new Date(selectedDate)
-    newDate.setMonth(newDate.getMonth() + offset)
+    if (viewMode === 'weekly') {
+        newDate.setDate(newDate.getDate() + (offset * 7))
+    } else {
+        newDate.setMonth(newDate.getMonth() + offset)
+    }
     setSelectedDate(newDate)
+  }
+
+  const getDateLabel = () => {
+    if (viewMode === 'weekly') {
+        const start = new Date(selectedDate)
+        start.setDate(selectedDate.getDate() - selectedDate.getDay()) // Sunday
+        const end = new Date(start)
+        end.setDate(start.getDate() + 6) // Saturday
+        
+        // Format: "MMM d - MMM d, YYYY"
+        const opts = { month: 'short', day: 'numeric' }
+        return `${start.toLocaleDateString('en-US', opts)} - ${end.toLocaleDateString('en-US', opts)}`
+    }
+    return selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   }
 
   return (
@@ -156,8 +175,8 @@ function Home() {
                 >
                     ‹
                 </button>
-                <span style={{ fontWeight: 600, minWidth: '120px', textAlign: 'center' }}>
-                    {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                <span style={{ fontWeight: 600, minWidth: '160px', textAlign: 'center', fontSize: '0.9rem' }}>
+                    {getDateLabel()}
                 </span>
                 <button 
                     onClick={() => handleDateChange(1)}
@@ -173,11 +192,47 @@ function Home() {
 
       <section className="dashboard-grid" style={{ gridTemplateColumns: '1.5fr 1fr', marginBottom: '2rem' }}>
         <article className="panel">
-            <header style={{ marginBottom: '1rem' }}>
-                <h2>Monthly Volume</h2>
-                <p>Total value of BOQs uploaded in {selectedDate.toLocaleDateString('en-US', { month: 'long' })}</p>
+            <header style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                <div>
+                    <h2>{viewMode === 'weekly' ? 'Weekly Volume' : 'Monthly Volume'}</h2>
+                    <p>Total value of BOQs uploaded in {viewMode === 'weekly' ? 'this week' : selectedDate.toLocaleDateString('en-US', { month: 'long' })}</p>
+                </div>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
+                    <button
+                        onClick={() => setViewMode('weekly')}
+                        style={{
+                            border: 'none',
+                            background: viewMode === 'weekly' ? '#fff' : 'transparent',
+                            padding: '4px 12px',
+                            borderRadius: '4px',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            color: viewMode === 'weekly' ? '#0f172a' : '#64748b',
+                            boxShadow: viewMode === 'weekly' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Week
+                    </button>
+                    <button
+                        onClick={() => setViewMode('monthly')}
+                        style={{
+                            border: 'none',
+                            background: viewMode === 'monthly' ? '#fff' : 'transparent',
+                            padding: '4px 12px',
+                            borderRadius: '4px',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            color: viewMode === 'monthly' ? '#0f172a' : '#64748b',
+                            boxShadow: viewMode === 'monthly' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Month
+                    </button>
+                </div>
             </header>
-            <HistoryChart projects={projects} selectedDate={selectedDate} />
+            <HistoryChart projects={projects} selectedDate={selectedDate} viewMode={viewMode} />
         </article>
 
         <article className="panel" style={{ minHeight: '320px' }}>
