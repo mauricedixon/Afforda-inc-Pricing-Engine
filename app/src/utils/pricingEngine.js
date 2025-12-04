@@ -123,17 +123,18 @@ export function calculateLineItem({
   }
 }
 
-export const processRows = (rows, materialIndex, laborIndex) =>
+export const processRows = (rows, materialIndex, laborIndex, defaultLaborType) =>
   rows.map((row, index) =>
     calculateLineItem({
       row,
       lineNumber: index + 1,
       materialIndex,
       laborIndex,
+      defaultLaborType,
     }),
   )
 
-export async function runPricingEngine({ projectId, rows }) {
+export async function runPricingEngine({ projectId, rows, defaultLaborType }) {
   const [{ data: materials, error: materialError }, { data: laborRates, error: laborError }] =
     await Promise.all([
       supabase.from('material_prices').select('*'),
@@ -146,7 +147,7 @@ export async function runPricingEngine({ projectId, rows }) {
   const materialIndex = buildMaterialIndex(materials)
   const laborIndex = buildLaborIndex(laborRates)
 
-  const lineItems = processRows(rows, materialIndex, laborIndex)
+  const lineItems = processRows(rows, materialIndex, laborIndex, defaultLaborType)
 
   const payload = lineItems.map((item) => ({
     project_id: projectId,

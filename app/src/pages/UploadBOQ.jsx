@@ -123,7 +123,11 @@ function UploadBOQ({ useLatestProject = false }) {
         const laborRates = mockDb.listLaborRates()
         const materialIndex = buildMaterialIndex(materials)
         const laborIndex = buildLaborIndex(laborRates)
-        const lineItems = processRows(rows, materialIndex, laborIndex)
+        
+        // Pass project labor type as default
+        const defaultLaborType = project.labor_type ?? 'Prevailing Wage'
+        const lineItems = processRows(rows, materialIndex, laborIndex, defaultLaborType)
+        
         mockDb.saveProjectLineItems(projectId, lineItems)
 
         // Calculate and save initial total
@@ -143,7 +147,9 @@ function UploadBOQ({ useLatestProject = false }) {
 
         navigate(`/pricing/project/${projectId}/review`)
       } else {
-        const lineItems = await runPricingEngine({ projectId, rows })
+        // Pass project labor type as default
+        const defaultLaborType = project.labor_type ?? 'Prevailing Wage'
+        const lineItems = await runPricingEngine({ projectId, rows, defaultLaborType })
 
         // Calculate and save initial total
         const profitMargin = Number(project.profit_margin ?? 0.2)

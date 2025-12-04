@@ -9,6 +9,7 @@ function NewProject() {
   const [profitMargin, setProfitMargin] = useState(20)
   const [bondRate, setBondRate] = useState(3)
   const [generalRequirements, setGeneralRequirements] = useState(0)
+  const [laborType, setLaborType] = useState('Prevailing Wage')
   const [status, setStatus] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
@@ -28,6 +29,7 @@ function NewProject() {
         profit_margin: Number(profitMargin) / 100,
         bond_rate: Number(bondRate) / 100,
         general_requirements: Number(generalRequirements),
+        labor_type: laborType,
       })
       saveLatestProjectId(project.id)
       setStatus('Project created! Redirecting…')
@@ -43,6 +45,7 @@ function NewProject() {
         profit_margin: Number(profitMargin) / 100,
         bond_rate: Number(bondRate) / 100,
         general_requirements: Number(generalRequirements),
+        labor_type: laborType,
       })
       .select()
       .single()
@@ -93,6 +96,22 @@ function NewProject() {
             value={generalRequirements}
             onChange={(event) => setGeneralRequirements(event.target.value)}
           />
+        </label>
+
+        <label>
+          Labor Type
+          <span className="helper-text" style={{ display: 'block', fontSize: '0.8rem', color: '#666', marginBottom: '0.25rem' }}>
+            Default labor rates to use for this project
+          </span>
+          <select
+            value={laborType}
+            onChange={(event) => setLaborType(event.target.value)}
+            style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', borderRadius: '4px', border: '1px solid #ccc' }}
+          >
+            <option value="Prevailing Wage">Prevailing Wage</option>
+            <option value="Union">Union/ PLA</option>
+            <option value="Private">Open Shop/ Private</option>
+          </select>
         </label>
 
         <label>
