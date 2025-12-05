@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: afforda-pricing-engine
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_SUPABASE_STORAGE_BUCKET
+        value: pricing-engine-uploads
+        sync: false
+      - key: NODE_VERSION
+        value: 22.12.0
+

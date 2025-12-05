@@ -82,7 +82,34 @@ src/
 
 > See `afforda-pricing-engine.plan.md` for the full implementation roadmap.
 
-## Deployment (Vercel)
+## Deployment
+
+### Option 1: Render (Recommended)
+
+1. **Create a Render account** at [render.com](https://render.com) and connect your GitHub repository.
+
+2. **Create a new Static Site**:
+   - Click "New +" → "Static Site"
+   - Connect your repository
+   - Render will auto-detect the `render.yaml` configuration
+
+3. **Configure Environment Variables** in Render dashboard:
+   - `VITE_SUPABASE_URL` - Your Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous/public key
+   - `VITE_SUPABASE_STORAGE_BUCKET` - (Optional) Defaults to `pricing-engine-uploads`
+   - `VITE_USE_MOCK_DATA` - (Optional) Set to `true` for demo mode without Supabase
+
+4. **Build Settings** (auto-detected from `render.yaml`):
+   - Build Command: `npm install && npm run build`
+   - Publish Directory: `dist`
+
+5. **After first deployment**:
+   - Update Supabase dashboard → Settings → API → add your Render domain to allowed origins
+   - Share the deployed URL with your mentors/clients
+
+**Note**: Render's free tier is perfect for static sites and includes automatic SSL certificates.
+
+### Option 2: Vercel
 
 1. Create a new project in [Vercel](https://vercel.com/new) and import this repo.
 2. When prompted for environment variables add:
