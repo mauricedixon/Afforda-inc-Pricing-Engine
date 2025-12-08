@@ -219,6 +219,7 @@
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
+  flex-wrap: wrap; /* Allow wrapping for long names */
 }
 
 .project-meta h3 {

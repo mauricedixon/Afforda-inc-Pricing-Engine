@@ -420,6 +420,7 @@ function ReviewBOQ({ useLatestProject = false }) {
                 <th>Description</th>
                 <th>Unit</th>
                 <th>Qty</th>
+                <th>Unit Cost</th>
                 <th>Material</th>
                 <th>Labor</th>
                 <th>Total</th>
@@ -440,6 +441,11 @@ function ReviewBOQ({ useLatestProject = false }) {
                   <td>{item.description}</td>
                   <td>{item.unit}</td>
                   <td>{item.quantity}</td>
+                  <td>
+                    {item.quantity > 0
+                      ? formatCurrency(safeNumber(item.total_cost) / safeNumber(item.quantity))
+                      : '-'}
+                  </td>
                   <td>{formatCurrency(safeNumber(item.material_cost))}</td>
                   <td>{formatCurrency(safeNumber(item.labor_cost))}</td>
                   <td>{formatCurrency(safeNumber(item.total_cost))}</td>
