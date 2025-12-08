@@ -19,6 +19,7 @@ const adminLinks = [
 function App() {
   const [currentProject, setCurrentProject] = useState(null)
   const [loadingProject, setLoadingProject] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   useEffect(() => {
     let isMounted = true
@@ -63,14 +64,24 @@ function App() {
   const projectStatus = currentProject?.status ?? 'No project selected'
 
   return (
-    <div className="shell">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <AffordaLogo className="sidebar-logo" variant="sidebar" />
-          <h1>Pricing Engine</h1>
-        </div>
+    <div className={`shell ${!isSidebarOpen ? 'sidebar-closed' : ''}`}>
+      <aside className={`sidebar ${!isSidebarOpen ? 'closed' : ''}`}>
+        <button
+          className="sidebar-toggle"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
+        >
+          {isSidebarOpen ? '«' : '»'}
+        </button>
 
-        <section className="current-project-card">
+        <div className="sidebar-content-wrapper">
+          <div className="sidebar-header">
+            <AffordaLogo className="sidebar-logo" variant="sidebar" />
+            <h1>Pricing Engine</h1>
+          </div>
+
+          <section className="current-project-card">
           <p className="nav-label">Current Project</p>
           {loadingProject ? (
             <p className="helper-text">Checking for saved projects…</p>
@@ -130,9 +141,20 @@ function App() {
             ))}
           </ul>
         </nav>
+        </div>
       </aside>
 
       <main className="content">
+        {!isSidebarOpen && (
+          <button
+            className="sidebar-toggle-floating"
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label="Open sidebar"
+            title="Expand Sidebar"
+          >
+            »
+          </button>
+        )}
         {isMockMode && (
           <div className="demo-banner">
             Demo data enabled. Uploads and projects are stored locally for previews.
