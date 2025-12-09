@@ -45,9 +45,9 @@ serve(async (req) => {
 
     // Using modern Gemini 2.x and 3.x models (1.5 is deprecated)
     const modelsToTry = [
-      'gemini-2.5-flash',       // Primary: Fast & Balanced
+      'gemini-3-pro',           // Primary: Highest Accuracy for Pricing
+      'gemini-2.5-flash',       // Backup: Fast & Balanced
       'gemini-2.5-flash-lite',  // Backup: Fastest
-      'gemini-3-pro',           // Backup: High Intelligence
       'gemini-2.0-flash'        // Backup: Legacy Next-Gen
     ]
     
