@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { supabase } from '../services/supabaseClient.js'
 
 const formatCurrencyInput = (value) => {
   if (value === null || value === undefined) return ''
@@ -6,12 +7,21 @@ const formatCurrencyInput = (value) => {
 }
 
 function LineItemModal({ item, onClose, onSave, isUpdating }) {
+  const [mode, setMode] = useState('simple') // 'simple' | 'composite'
   const [form, setForm] = useState({
     material_cost: 0,
     labor_cost: 0,
     total_cost: 0,
     matched: false,
   })
+  
+  const [components, setComponents] = useState([])
+  const [isLoadingComponents, setIsLoadingComponents] = useState(false)
+
+  // Derive quantity from the parent item safely
+  const parentQty = useMemo(() => {
+    return Number(item?.quantity) || 0
+  }, [item])
 
   useEffect(() => {
     if (item) {
@@ -21,17 +31,75 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
         total_cost: item.total_cost ?? 0,
         matched: item.matched ?? false,
       })
+      
+      if (item.is_composite) {
+        setMode('composite')
+        fetchComponents(item.id)
+      } else {
+        setMode('simple')
+        setComponents([])
+      }
     }
   }, [item])
 
+  const fetchComponents = async (itemId) => {
+    setIsLoadingComponents(true)
+    const { data, error } = await supabase
+      .from('line_item_components')
+      .select('*')
+      .eq('project_line_item_id', itemId)
+    
+    if (!error && data) {
+      // Check if old data has 'use_rate' flag; if not present, assume false
+      // We also handle 'rate_per_unit' if present, otherwise default to 0
+      const enhancedData = data.map(c => ({
+        ...c,
+        use_rate: c.use_rate ?? false, // Default to false if not saved previously
+        rate_per_unit: c.rate_per_unit ?? 0
+      }))
+      setComponents(enhancedData)
+    }
+    setIsLoadingComponents(false)
+  }
+
+  // Calculate totals from components whenever they change
+  useEffect(() => {
+    if (mode === 'composite') {
+      const calculateComponentCost = (c) => {
+        // If "use_rate" is active, Qty = Rate * ParentQty
+        const qty = c.use_rate ? (c.rate_per_unit * parentQty) : c.quantity
+        return qty * c.unit_cost
+      }
+
+      const material = components
+        .filter(c => c.component_type === 'material')
+        .reduce((sum, c) => sum + calculateComponentCost(c), 0)
+        
+      const labor = components
+        .filter(c => c.component_type === 'labor')
+        .reduce((sum, c) => sum + calculateComponentCost(c), 0)
+
+      const other = components
+        .filter(c => !['material', 'labor'].includes(c.component_type))
+        .reduce((sum, c) => sum + calculateComponentCost(c), 0)
+
+      setForm(prev => ({
+        ...prev,
+        material_cost: material,
+        labor_cost: labor + other,
+        total_cost: material + labor + other
+      }))
+    }
+  }, [components, mode, parentQty])
+
   const handleChange = (field, value) => {
+    if (mode === 'composite') return
+
     const numValue = parseFloat(value)
     const newValue = isNaN(numValue) ? 0 : numValue
 
     setForm(prev => {
       const updated = { ...prev, [field]: newValue }
-      
-      // Auto-calculate total if material or labor changes
       if (field === 'material_cost' || field === 'labor_cost') {
         updated.total_cost = updated.material_cost + updated.labor_cost
       }
@@ -39,12 +107,49 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
     })
   }
 
+  const handleAddComponent = () => {
+    setComponents(prev => [
+      ...prev,
+      {
+        id: `temp-${Date.now()}`,
+        description: '',
+        component_type: 'material',
+        quantity: 1, // Default absolute qty
+        rate_per_unit: 0, // Default rate
+        use_rate: false, // Default to absolute
+        unit_cost: 0,
+        unit: 'EA'
+      }
+    ])
+  }
+
+  const handleUpdateComponent = (id, field, value) => {
+    setComponents(prev => prev.map(c => {
+      if (c.id === id) {
+        return { ...c, [field]: value }
+      }
+      return c
+    }))
+  }
+
+  const handleRemoveComponent = (id) => {
+    setComponents(prev => prev.filter(c => c.id !== id))
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
+    
+    // Bake the calculated quantity for persistence
+    const finalComponents = mode === 'composite' ? components.map(c => ({
+        ...c,
+        quantity: c.use_rate ? (c.rate_per_unit * parentQty) : c.quantity
+    })) : []
+
     onSave({
       ...item,
       ...form,
-      // If user is manually saving, we assume they are resolving the issue
+      is_composite: mode === 'composite',
+      components: finalComponents,
       matched: true, 
       warnings: [] 
     })
@@ -65,7 +170,7 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
       justifyContent: 'center',
       zIndex: 9999,
     }}>
-      <div className="panel" style={{ width: '100%', maxWidth: '500px' }}>
+      <div className="panel" style={{ width: '100%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <h2 style={{ margin: 0 }}>Edit Line Item</h2>
           <button 
@@ -84,29 +189,181 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
           </div>
         </div>
 
+        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+            <button 
+                type="button"
+                onClick={() => setMode('simple')}
+                style={{
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: mode === 'simple' ? '2px solid #2563eb' : 'none',
+                    color: mode === 'simple' ? '#2563eb' : '#64748b',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    padding: '0.5rem'
+                }}
+            >
+                Simple Pricing
+            </button>
+            <button 
+                type="button"
+                onClick={() => setMode('composite')}
+                style={{
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: mode === 'composite' ? '2px solid #2563eb' : 'none',
+                    color: mode === 'composite' ? '#2563eb' : '#64748b',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    padding: '0.5rem'
+                }}
+            >
+                Detailed Breakdown (Assembly)
+            </button>
+        </div>
+
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <label>
-              Material Cost ($)
-              <input
-                type="number"
-                step="0.01"
-                value={form.material_cost}
-                onChange={(e) => handleChange('material_cost', e.target.value)}
-                style={{ width: '100%', marginTop: '0.25rem' }}
-              />
-            </label>
-            <label>
-              Labor Cost ($)
-              <input
-                type="number"
-                step="0.01"
-                value={form.labor_cost}
-                onChange={(e) => handleChange('labor_cost', e.target.value)}
-                style={{ width: '100%', marginTop: '0.25rem' }}
-              />
-            </label>
-          </div>
+          {mode === 'simple' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <label>
+                Material Cost ($)
+                <input
+                    type="number"
+                    step="0.01"
+                    value={form.material_cost}
+                    onChange={(e) => handleChange('material_cost', e.target.value)}
+                    style={{ width: '100%', marginTop: '0.25rem' }}
+                />
+                </label>
+                <label>
+                Labor Cost ($)
+                <input
+                    type="number"
+                    step="0.01"
+                    value={form.labor_cost}
+                    onChange={(e) => handleChange('labor_cost', e.target.value)}
+                    style={{ width: '100%', marginTop: '0.25rem' }}
+                />
+                </label>
+            </div>
+          ) : (
+            <div style={{ marginBottom: '1.5rem' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                    <thead>
+                        <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
+                            <th style={{ padding: '0.5rem' }}>Type</th>
+                            <th style={{ padding: '0.5rem' }}>Description</th>
+                            <th style={{ padding: '0.5rem', width: '40px', textAlign: 'center' }}>Link?</th>
+                            <th style={{ padding: '0.5rem', width: '80px' }}>{components.some(c => c.use_rate) ? 'Rate' : 'Qty'}</th>
+                            <th style={{ padding: '0.5rem', width: '80px' }}>Calc Qty</th>
+                            <th style={{ padding: '0.5rem', width: '60px' }}>Unit</th>
+                            <th style={{ padding: '0.5rem', width: '100px' }}>Cost ($)</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'right' }}>Total</th>
+                            <th style={{ padding: '0.5rem', width: '40px' }}></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {components.map((comp) => (
+                            <tr key={comp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '0.5rem' }}>
+                                    <select 
+                                        value={comp.component_type}
+                                        onChange={(e) => handleUpdateComponent(comp.id, 'component_type', e.target.value)}
+                                        style={{ width: '100%', padding: '0.25rem' }}
+                                    >
+                                        <option value="material">Material</option>
+                                        <option value="labor">Labor</option>
+                                        <option value="equipment">Equipment</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                    <input 
+                                        type="text" 
+                                        value={comp.description}
+                                        onChange={(e) => handleUpdateComponent(comp.id, 'description', e.target.value)}
+                                        placeholder="Item name"
+                                        style={{ width: '100%', padding: '0.25rem' }}
+                                    />
+                                </td>
+                                <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                                    <input 
+                                        type="checkbox"
+                                        checked={comp.use_rate}
+                                        onChange={(e) => handleUpdateComponent(comp.id, 'use_rate', e.target.checked)}
+                                        title="Link to parent quantity?"
+                                    />
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                    {comp.use_rate ? (
+                                        <input 
+                                            type="number" 
+                                            step="0.01"
+                                            value={comp.rate_per_unit}
+                                            onChange={(e) => handleUpdateComponent(comp.id, 'rate_per_unit', parseFloat(e.target.value))}
+                                            placeholder="Rate"
+                                            style={{ width: '100%', padding: '0.25rem', borderColor: '#3b82f6' }}
+                                        />
+                                    ) : (
+                                        <input 
+                                            type="number" 
+                                            step="0.01"
+                                            value={comp.quantity}
+                                            onChange={(e) => handleUpdateComponent(comp.id, 'quantity', parseFloat(e.target.value))}
+                                            style={{ width: '100%', padding: '0.25rem' }}
+                                        />
+                                    )}
+                                </td>
+                                <td style={{ padding: '0.5rem', color: '#64748b' }}>
+                                    {comp.use_rate ? (comp.rate_per_unit * parentQty).toFixed(2) : comp.quantity}
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                    <input 
+                                        type="text" 
+                                        value={comp.unit}
+                                        onChange={(e) => handleUpdateComponent(comp.id, 'unit', e.target.value)}
+                                        style={{ width: '100%', padding: '0.25rem' }}
+                                    />
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                    <input 
+                                        type="number" 
+                                        step="0.01"
+                                        value={comp.unit_cost}
+                                        onChange={(e) => handleUpdateComponent(comp.id, 'unit_cost', parseFloat(e.target.value))}
+                                        style={{ width: '100%', padding: '0.25rem' }}
+                                    />
+                                </td>
+                                <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                                    {((comp.use_rate ? (comp.rate_per_unit * parentQty) : comp.quantity) * comp.unit_cost).toFixed(2)}
+                                </td>
+                                <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleRemoveComponent(comp.id)}
+                                        style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
+                                    >
+                                        &times;
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                    <button 
+                        type="button"
+                        onClick={handleAddComponent}
+                        style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+                    >
+                        + Add Component
+                    </button>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+                        * "Link?" calculates Qty based on parent item Qty ({item.quantity})
+                    </span>
+                </div>
+            </div>
+          )}
 
           <label style={{ marginBottom: '1.5rem', display: 'block' }}>
             Total Cost ($)
@@ -114,8 +371,9 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
               type="number"
               step="0.01"
               value={form.total_cost}
-              onChange={(e) => setForm(prev => ({ ...prev, total_cost: parseFloat(e.target.value) || 0 }))}
-              style={{ width: '100%', marginTop: '0.25rem', fontWeight: 'bold' }}
+              readOnly={mode === 'composite'}
+              onChange={(e) => mode !== 'composite' && setForm(prev => ({ ...prev, total_cost: parseFloat(e.target.value) || 0 }))}
+              style={{ width: '100%', marginTop: '0.25rem', fontWeight: 'bold', background: mode === 'composite' ? '#f1f5f9' : 'white' }}
             />
           </label>
 

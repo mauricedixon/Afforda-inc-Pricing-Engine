@@ -281,6 +281,7 @@ function ReviewBOQ({ useLatestProject = false }) {
         return
     }
 
+    // 1. Update the parent item
     const { error } = await supabase
         .from('project_line_items')
         .update({
@@ -288,29 +289,72 @@ function ReviewBOQ({ useLatestProject = false }) {
             labor_cost: updatedItem.labor_cost,
             total_cost: updatedItem.total_cost,
             matched: updatedItem.matched,
-            warnings: updatedItem.warnings
+            warnings: updatedItem.warnings,
+            is_composite: updatedItem.is_composite
         })
         .eq('id', updatedItem.id)
 
     if (error) {
         setStatus(`Failed to update item: ${error.message}`)
-        // Revert optimistic update could be done here if needed
-    } else {
-        // Also update the project total value since line item changed
-        const { grandTotal } = calculateGrandTotal({
-            lineItems: updatedItems,
-            profitMargin: localProfitMargin / 100,
-            bondRate: localBondRate / 100,
-            generalRequirements: project?.general_requirements ?? 0
-        })
-        
-        await supabase
-            .from('projects')
-            .update({ total_value: grandTotal })
-            .eq('id', projectId)
-            
-        setProject(prev => ({ ...prev, total_value: grandTotal }))
+        setIsUpdating(false)
+        return
     }
+
+    // 2. Handle Components if Composite
+    if (updatedItem.is_composite && updatedItem.components) {
+        // Delete existing components
+        const { error: deleteError } = await supabase
+            .from('line_item_components')
+            .delete()
+            .eq('project_line_item_id', updatedItem.id)
+        
+        if (deleteError) {
+             console.error('Error clearing components:', deleteError)
+        }
+
+        // Insert new components
+        if (updatedItem.components.length > 0) {
+            const payload = updatedItem.components.map(c => ({
+                project_line_item_id: updatedItem.id,
+                description: c.description,
+                component_type: c.component_type,
+                quantity: c.quantity,
+                unit: c.unit,
+                unit_cost: c.unit_cost
+            }))
+
+            const { error: insertError } = await supabase
+                .from('line_item_components')
+                .insert(payload)
+            
+            if (insertError) {
+                console.error('Error saving components:', insertError)
+                setStatus(`Saved total, but failed to save details: ${insertError.message}`)
+            }
+        }
+    } else if (!updatedItem.is_composite) {
+        // Ensure components are cleared if switched back to simple
+        // (Optional, but good for cleanup)
+        await supabase
+            .from('line_item_components')
+            .delete()
+            .eq('project_line_item_id', updatedItem.id)
+    }
+
+    // 3. Update Project Total
+    const { grandTotal } = calculateGrandTotal({
+        lineItems: updatedItems,
+        profitMargin: localProfitMargin / 100,
+        bondRate: localBondRate / 100,
+        generalRequirements: project?.general_requirements ?? 0
+    })
+    
+    await supabase
+        .from('projects')
+        .update({ total_value: grandTotal })
+        .eq('id', projectId)
+        
+    setProject(prev => ({ ...prev, total_value: grandTotal }))
     
     setIsUpdating(false)
     setShowLineItemModal(false)
