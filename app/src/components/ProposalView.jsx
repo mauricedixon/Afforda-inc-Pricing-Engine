@@ -49,6 +49,10 @@ function ProposalView({ project, items, onClose }) {
           </div>
         </header>
 
+        <div className="internal-watermark">
+          INTERNAL USE ONLY
+        </div>
+
         <section className="proposal-section">
           <h2>Project Information</h2>
           <p>
@@ -125,14 +129,6 @@ function ProposalView({ project, items, onClose }) {
               Showing first 30 lines. Full export available upon request.
             </p>
           )}
-        </section>
-
-        <section className="proposal-section proposal-footer">
-          <p>We appreciate the opportunity to bid on this project.</p>
-          <div className="signature-line">
-            <span>Signature</span>
-          </div>
-          <p>Thank you for your business.</p>
         </section>
       </div>
     </div>

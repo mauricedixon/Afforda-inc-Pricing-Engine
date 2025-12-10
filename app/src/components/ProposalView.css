@@ -24,6 +24,35 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border-radius: 0.5rem;
   position: relative;
+  overflow: hidden;
+}
+
+.internal-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  font-size: 3rem;
+  font-weight: 800;
+  color: #ef4444;
+  opacity: 0.12;
+  pointer-events: none;
+  white-space: normal;
+  text-align: center;
+  border: 4px solid #ef4444;
+  padding: 1rem 2rem;
+  text-transform: uppercase;
+  z-index: 10;
+  user-select: none;
+  max-width: 80%;
+  overflow-wrap: break-word;
+}
+
+/* Ensure content sits above watermark */
+.proposal-header,
+.proposal-section {
+  position: relative;
+  z-index: 1;
 }
 
 /* UPDATED: Changed from absolute to flex to prevent overlap */
