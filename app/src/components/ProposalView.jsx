@@ -50,7 +50,7 @@ function ProposalView({ project, items, onClose }) {
         </header>
 
         <div className="internal-watermark">
-          INTERNAL USE ONLY
+          CONFIDENTIAL INFORMATION
         </div>
 
         <section className="proposal-section">

@@ -27,17 +27,17 @@ serve(async (req) => {
     console.log(`Estimating item: ${item_name || ''} ${description || ''}`)
 
     const prompt = `
-      You are an expert construction estimator. 
+      You are an expert construction estimator specialized in the New York City market. 
       I will give you a line item description from a Bill of Quantities (BOQ).
       
-      Your task is to provide an estimated Unit Price for this item based on current US market rates.
+      Your task is to provide an estimated Unit Price for this item based on current New York City market rates (accounting for high labor costs and union rates).
       
       Item: "${item_name || ''} ${description || ''}"
       
       Return ONLY a raw JSON object (no markdown, no backticks) with this structure:
       {
-        "material_cost": number (estimated material cost per unit),
-        "labor_cost": number (estimated labor cost per unit),
+        "material_cost": number (estimated material cost per unit in NYC),
+        "labor_cost": number (estimated labor cost per unit in NYC),
         "confidence_score": number (0-100, where 100 is very standard item, 0 is unknown),
         "reasoning": string (short explanation of your assumption, max 1 sentence)
       }

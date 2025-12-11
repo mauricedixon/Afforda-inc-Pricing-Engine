@@ -187,6 +187,29 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
           <div style={{ display: 'flex', gap: '2rem', marginTop: '0.5rem' }}>
              <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Qty: <strong>{item.quantity} {item.unit}</strong></span>
           </div>
+          {item.pricing_source === 'ai' && (
+            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: '#6366f1', letterSpacing: '0.05em' }}>AI Estimate</span>
+                    {item.confidence_score !== null && (
+                         <span style={{
+                            display: 'inline-block',
+                            padding: '2px 6px',
+                            borderRadius: '999px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            backgroundColor: item.confidence_score > 80 ? '#dcfce7' : item.confidence_score > 50 ? '#fef9c3' : '#fee2e2',
+                            color: item.confidence_score > 80 ? '#166534' : item.confidence_score > 50 ? '#854d0e' : '#991b1b',
+                        }}>
+                            {item.confidence_score}% Confidence
+                        </span>
+                    )}
+                </div>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: '#475569', fontStyle: 'italic' }}>
+                    "{item.ai_reasoning || 'No reasoning provided.'}"
+                </p>
+            </div>
+          )}
         </div>
 
         <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
