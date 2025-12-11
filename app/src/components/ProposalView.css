@@ -175,6 +175,29 @@
     visibility: visible;
   }
 
+  /* Critical: Collapse layout of parent containers so they don't take space */
+  #root, .shell, .content {
+    display: block !important;
+    position: static !important; /* Override inline relative */
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* Hide siblings of proposal overlay to prevent flow interference */
+  .content > div > :not(.proposal-overlay) {
+    display: none !important;
+  }
+
+  /* Also hide sidebar and dashboard elements if visible */
+  .sidebar, .dashboard-grid {
+    display: none !important;
+  }
+
   /* Correctly position the proposal overlay for printing */
   .proposal-overlay {
     position: absolute;
@@ -196,24 +219,28 @@
   .proposal-card {
     width: 100%;
     max-width: 100%;
+    min-height: auto;
     margin: 0;
-    padding: 0; /* Adjust padding as needed for print margins */
+    padding: 0;
     box-shadow: none;
     border: none;
+    overflow: visible;
+  }
+
+  .internal-watermark {
+    position: absolute;
+    top: 600px; /* Position specifically on the first/second page */
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    /* Remove fixed positioning so it doesn't repeat or split awkwardly */
+  }
+
+  .proposal-section {
+    break-inside: avoid;
   }
 
   /* Hide the controls (Print/Close buttons) */
   .no-print {
     display: none !important;
-  }
-
-  /* Ensure main layout containers don't interfere */
-  #root, .shell, .sidebar, .content {
-    display: block; /* Keep them in flow but invisible */
-    position: static;
-    margin: 0;
-    padding: 0;
-    height: auto;
-    overflow: visible;
   }
 }
