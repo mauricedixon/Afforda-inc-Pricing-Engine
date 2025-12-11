@@ -38,8 +38,9 @@ function HistoryChart({ projects = [], selectedDate = new Date(), viewMode = 'mo
       projects.forEach(p => {
         const d = new Date(p.created_at)
         if (d >= startOfWeek && d < endOfWeek) {
-            const dayIndex = d.getDay() // 0 (Sun) to 6 (Sat)
-            if (weeklyData[dayIndex]) {
+            // Calculate offset from startOfWeek in days
+            const dayIndex = Math.floor((d - startOfWeek) / (1000 * 60 * 60 * 24))
+            if (dayIndex >= 0 && dayIndex < 7 && weeklyData[dayIndex]) {
                 weeklyData[dayIndex].value += (Number(p.total_value) || 0)
                 weeklyData[dayIndex].count += 1
             }
