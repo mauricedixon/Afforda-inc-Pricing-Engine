@@ -30,6 +30,9 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
         labor_cost: item.labor_cost ?? 0,
         total_cost: item.total_cost ?? 0,
         matched: item.matched ?? false,
+        confidence_score: item.confidence_score ?? null,
+        ai_reasoning: item.ai_reasoning ?? null,
+        pricing_source: item.pricing_source ?? 'manual',
       })
       
       if (item.is_composite) {
@@ -136,6 +139,36 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
     setComponents(prev => prev.filter(c => c.id !== id))
   }
 
+  const handleAiEstimate = async () => {
+    setIsEstimating(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('estimate-item', {
+        body: { 
+            item_name: item.item_name,
+            description: item.description 
+        }
+      })
+
+      if (error) throw error
+
+      setForm(prev => ({
+        ...prev,
+        material_cost: data.material_cost || 0,
+        labor_cost: data.labor_cost || 0,
+        total_cost: (data.material_cost || 0) + (data.labor_cost || 0),
+        confidence_score: data.confidence_score,
+        ai_reasoning: data.reasoning,
+        pricing_source: 'ai'
+      }))
+
+    } catch (err) {
+      console.error('AI Estimate failed:', err)
+      alert('Failed to get AI estimate. Please try again.')
+    } finally {
+      setIsEstimating(false)
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     
@@ -212,36 +245,68 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
           )}
         </div>
 
-        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
-            <button 
+        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+                <button 
+                    type="button"
+                    onClick={() => setMode('simple')}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: mode === 'simple' ? '2px solid #2563eb' : 'none',
+                        color: mode === 'simple' ? '#2563eb' : '#64748b',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        padding: '0.5rem'
+                    }}
+                >
+                    Simple Pricing
+                </button>
+                <button 
+                    type="button"
+                    onClick={() => setMode('composite')}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: mode === 'composite' ? '2px solid #2563eb' : 'none',
+                        color: mode === 'composite' ? '#2563eb' : '#64748b',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        padding: '0.5rem'
+                    }}
+                >
+                    Detailed Breakdown (Assembly)
+                </button>
+            </div>
+
+            <button
                 type="button"
-                onClick={() => setMode('simple')}
+                onClick={handleAiEstimate}
+                disabled={isEstimating || isUpdating}
                 style={{
-                    background: 'none',
+                    background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                    color: 'white',
                     border: 'none',
-                    borderBottom: mode === 'simple' ? '2px solid #2563eb' : 'none',
-                    color: mode === 'simple' ? '#2563eb' : '#64748b',
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
                     fontWeight: 500,
-                    cursor: 'pointer',
-                    padding: '0.5rem'
+                    cursor: isEstimating ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    boxShadow: '0 2px 4px rgba(99, 102, 241, 0.2)'
                 }}
             >
-                Simple Pricing
-            </button>
-            <button 
-                type="button"
-                onClick={() => setMode('composite')}
-                style={{
-                    background: 'none',
-                    border: 'none',
-                    borderBottom: mode === 'composite' ? '2px solid #2563eb' : 'none',
-                    color: mode === 'composite' ? '#2563eb' : '#64748b',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    padding: '0.5rem'
-                }}
-            >
-                Detailed Breakdown (Assembly)
+                {isEstimating ? (
+                    <>
+                        <span className="animate-spin" style={{ display: 'inline-block' }}>↻</span> Estimating...
+                    </>
+                ) : (
+                    <>
+                        <span>✨</span> AI Re-Estimate
+                    </>
+                )}
             </button>
         </div>
 

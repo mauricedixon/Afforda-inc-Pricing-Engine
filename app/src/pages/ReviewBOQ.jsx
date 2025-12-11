@@ -428,7 +428,10 @@ function ReviewBOQ({ useLatestProject = false }) {
             total_cost: updatedItem.total_cost,
             matched: updatedItem.matched,
             warnings: updatedItem.warnings,
-            is_composite: updatedItem.is_composite
+            is_composite: updatedItem.is_composite,
+            confidence_score: updatedItem.confidence_score,
+            ai_reasoning: updatedItem.ai_reasoning,
+            pricing_source: updatedItem.pricing_source
         })
         .eq('id', updatedItem.id)
 
