@@ -18,7 +18,7 @@ const AffordaLogo = ({ className = '', variant = 'default' }) => {
         className={`afforda-logo-fallback ${className}`.trim()} 
         style={{ 
           fontWeight: 'bold', 
-          color: variant === 'sidebar' ? 'white' : '#0f172a',
+          color: '#0f172a',
           fontSize: '1.25rem',
           display: 'flex',
           alignItems: 'center',
