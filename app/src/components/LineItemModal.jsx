@@ -17,6 +17,7 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
   
   const [components, setComponents] = useState([])
   const [isLoadingComponents, setIsLoadingComponents] = useState(false)
+  const [isEstimating, setIsEstimating] = useState(false)
 
   // Derive quantity from the parent item safely
   const parentQty = useMemo(() => {
