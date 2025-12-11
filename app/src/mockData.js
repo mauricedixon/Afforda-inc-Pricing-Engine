@@ -189,6 +189,15 @@ export const mockDb = {
     }
     return null
   },
+  deleteProject: (id) => {
+    const idx = mockState.projects.findIndex(p => p.id === id)
+    if (idx > -1) {
+        mockState.projects.splice(idx, 1)
+        delete mockState.projectLineItems[id]
+        return true
+    }
+    return false
+  },
   saveProjectLineItems: (projectId, items) => {
     mockState.projectLineItems[projectId] = clone(items)
   },

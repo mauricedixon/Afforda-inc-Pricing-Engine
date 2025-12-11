@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../services/supabaseClient.js'
 import { getLatestProjectId, saveLatestProjectId } from '../utils/storage.js'
 import { exportBOQToExcel } from '../utils/excelExporter.js'
@@ -11,6 +11,7 @@ import { calculateGrandTotal } from '../utils/pricingEngine.js'
 
 function ReviewBOQ({ useLatestProject = false }) {
   const params = useParams()
+  const navigate = useNavigate()
   const [project, setProject] = useState(null)
   const [lineItems, setLineItems] = useState([])
   const [status, setStatus] = useState('')
@@ -19,6 +20,8 @@ function ReviewBOQ({ useLatestProject = false }) {
   const [localBondRate, setLocalBondRate] = useState(3)
   const [localProfitMargin, setLocalProfitMargin] = useState(20)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isEstimating, setIsEstimating] = useState(false)
+  const [estimationProgress, setEstimationProgress] = useState({ current: 0, total: 0 })
 
   // Edit Project State
   const [showEditProjectModal, setShowEditProjectModal] = useState(false)
@@ -174,6 +177,107 @@ function ReviewBOQ({ useLatestProject = false }) {
     handleUpdateRates(localBondRate, newMargin)
   }
 
+  const handleAutoEstimate = async () => {
+    if (isMockMode) {
+      alert('AI estimation is not available in demo mode.')
+      return
+    }
+
+    const unmatchedItems = lineItems.filter((item) => !item.matched)
+    if (unmatchedItems.length === 0) {
+      alert('All items are already matched or priced.')
+      return
+    }
+
+    if (!confirm(`This will use AI to estimate ${unmatchedItems.length} items. Continue?`)) {
+      return
+    }
+
+    setIsEstimating(true)
+    setEstimationProgress({ current: 0, total: unmatchedItems.length })
+    
+    // Process in chunks of 3 to avoid rate limits
+    const CHUNK_SIZE = 3
+    const chunks = []
+    for (let i = 0; i < unmatchedItems.length; i += CHUNK_SIZE) {
+      chunks.push(unmatchedItems.slice(i, i + CHUNK_SIZE))
+    }
+
+    let processedCount = 0
+    let updatedLineItems = [...lineItems]
+
+    for (const chunk of chunks) {
+      const promises = chunk.map(async (item) => {
+        try {
+          const { data, error } = await supabase.functions.invoke('estimate-item', {
+            body: { description: item.description }
+          })
+
+          if (error) throw error
+          
+          return {
+            id: item.id,
+            material_cost: data.material_cost || 0,
+            labor_cost: data.labor_cost || 0,
+            confidence_score: data.confidence_score,
+            ai_reasoning: data.reasoning,
+            pricing_source: 'ai',
+            matched: false 
+          }
+        } catch (err) {
+          console.error(`Failed to estimate item ${item.id}:`, err)
+          return null
+        }
+      })
+
+      const results = await Promise.all(promises)
+
+      // Save valid results to DB
+      for (const result of results) {
+        if (result) {
+          const { error } = await supabase
+            .from('project_line_items')
+            .update({
+              material_cost: result.material_cost,
+              labor_cost: result.labor_cost,
+              total_cost: result.material_cost + result.labor_cost,
+              confidence_score: result.confidence_score,
+              ai_reasoning: result.ai_reasoning,
+              pricing_source: result.pricing_source
+            })
+            .eq('id', result.id)
+
+          if (!error) {
+             // Update local state
+             updatedLineItems = updatedLineItems.map(i => {
+                if (i.id === result.id) {
+                    return { ...i, ...result, total_cost: result.material_cost + result.labor_cost }
+                }
+                return i
+             })
+          }
+        }
+      }
+
+      processedCount += chunk.length
+      setEstimationProgress({ current: Math.min(processedCount, unmatchedItems.length), total: unmatchedItems.length })
+      setLineItems(updatedLineItems) // incremental update
+    }
+
+    setIsEstimating(false)
+    
+    // Recalculate project totals after AI run
+    const { grandTotal } = calculateGrandTotal({
+        lineItems: updatedLineItems,
+        profitMargin: localProfitMargin / 100,
+        bondRate: localBondRate / 100,
+        generalRequirements: project?.general_requirements ?? 0
+    })
+    
+    await supabase.from('projects').update({ total_value: grandTotal }).eq('id', projectId)
+    setProject(prev => ({ ...prev, total_value: grandTotal }))
+  }
+
   const handleExport = () => {
     if (!project) {
       setStatus('Project not loaded yet.')
@@ -260,6 +364,40 @@ function ReviewBOQ({ useLatestProject = false }) {
     setLocalProfitMargin(editProjectForm.profit_margin)
     setShowEditProjectModal(false)
     setIsUpdating(false)
+  }
+
+  const handleDeleteProject = async () => {
+    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+      return
+    }
+
+    setIsUpdating(true)
+
+    // Handle Mock Mode
+    if (isMockMode) {
+      if (mockDb.deleteProject) {
+         mockDb.deleteProject(projectId)
+      } else {
+         alert('Delete not implemented in mock mode')
+      }
+      navigate('/')
+      return
+    }
+
+    // Delete from Supabase
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', projectId)
+
+    if (error) {
+      setStatus(`Error deleting project: ${error.message}`)
+      setIsUpdating(false)
+      return
+    }
+
+    // Success - redirect to home
+    navigate('/')
   }
 
   const handleLineItemClick = (item) => {
@@ -425,6 +563,22 @@ function ReviewBOQ({ useLatestProject = false }) {
           >
             Preview Proposal
           </button>
+          
+          <div style={{ width: '1px', height: '2rem', background: '#cbd5e1', margin: '0 0.5rem' }}></div>
+          
+          <button
+            className="button"
+            onClick={handleAutoEstimate}
+            disabled={isEstimating || isUpdating}
+            style={{ 
+                background: isEstimating ? '#94a3b8' : 'linear-gradient(135deg, #6366f1, #a855f7)',
+                color: 'white',
+                border: 'none',
+                boxShadow: '0 2px 4px rgba(168, 85, 247, 0.3)'
+            }}
+          >
+            {isEstimating ? `Estimating ${estimationProgress.current}/${estimationProgress.total}...` : '✨ Auto-Estimate Unmatched'}
+          </button>
         </div>
       </header>
 
@@ -468,6 +622,7 @@ function ReviewBOQ({ useLatestProject = false }) {
                 <th>Material</th>
                 <th>Labor</th>
                 <th>Total</th>
+                <th>Conf.</th>
                 <th>Matched?</th>
               </tr>
             </thead>
@@ -482,7 +637,20 @@ function ReviewBOQ({ useLatestProject = false }) {
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '')}
                 >
                   <td>{item.line_number}</td>
-                  <td>{item.description}</td>
+                  <td>
+                    {item.description}
+                    {item.pricing_source === 'ai' && (
+                        <span style={{ 
+                            fontSize: '0.7rem', 
+                            display: 'block', 
+                            color: '#6366f1', 
+                            marginTop: '2px',
+                            fontStyle: 'italic'
+                        }}>
+                            ✨ AI Estimated
+                        </span>
+                    )}
+                  </td>
                   <td>{item.unit}</td>
                   <td>{item.quantity}</td>
                   <td>
@@ -493,6 +661,23 @@ function ReviewBOQ({ useLatestProject = false }) {
                   <td>{formatCurrency(safeNumber(item.material_cost))}</td>
                   <td>{formatCurrency(safeNumber(item.labor_cost))}</td>
                   <td>{formatCurrency(safeNumber(item.total_cost))}</td>
+                  <td>
+                    {item.pricing_source === 'ai' && item.confidence_score !== null ? (
+                        <div title={item.ai_reasoning || 'No reasoning provided'}>
+                            <span style={{
+                                display: 'inline-block',
+                                padding: '2px 6px',
+                                borderRadius: '999px',
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                backgroundColor: item.confidence_score > 80 ? '#dcfce7' : item.confidence_score > 50 ? '#fef9c3' : '#fee2e2',
+                                color: item.confidence_score > 80 ? '#166534' : item.confidence_score > 50 ? '#854d0e' : '#991b1b',
+                            }}>
+                                {item.confidence_score}%
+                            </span>
+                        </div>
+                    ) : '-'}
+                  </td>
                   <td>
                     {item.matched ? (
                       <span style={{ color: '#16a34a', fontWeight: 500 }}>Yes</span>
@@ -621,6 +806,18 @@ function ReviewBOQ({ useLatestProject = false }) {
               </label>
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+                <button
+                  className="button"
+                  style={{ 
+                    background: '#ef4444', 
+                    color: 'white', 
+                    marginRight: 'auto' 
+                  }}
+                  onClick={handleDeleteProject}
+                  disabled={isUpdating}
+                >
+                  Delete Project
+                </button>
                 <button
                   className="button"
                   style={{ background: '#64748b' }}
