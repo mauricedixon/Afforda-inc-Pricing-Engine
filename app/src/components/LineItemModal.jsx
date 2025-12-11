@@ -152,11 +152,18 @@ function LineItemModal({ item, onClose, onSave, isUpdating }) {
 
       if (error) throw error
 
+      // AI returns UNIT PRICE. We need to calculate TOTAL PRICE.
+      const unitMaterial = data.material_cost || 0
+      const unitLabor = data.labor_cost || 0
+      
+      const totalMaterial = unitMaterial * parentQty
+      const totalLabor = unitLabor * parentQty
+
       setForm(prev => ({
         ...prev,
-        material_cost: data.material_cost || 0,
-        labor_cost: data.labor_cost || 0,
-        total_cost: (data.material_cost || 0) + (data.labor_cost || 0),
+        material_cost: totalMaterial,
+        labor_cost: totalLabor,
+        total_cost: totalMaterial + totalLabor,
         confidence_score: data.confidence_score,
         ai_reasoning: data.reasoning,
         pricing_source: 'ai'
