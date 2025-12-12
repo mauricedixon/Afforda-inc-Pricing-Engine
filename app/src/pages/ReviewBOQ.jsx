@@ -215,10 +215,15 @@ function ReviewBOQ({ useLatestProject = false }) {
 
           if (error) throw error
           
+          // Fix: Multiply AI Unit Price by Quantity for Total Cost
+          const qty = Number(item.quantity) || 0
+          const unitMaterial = data.material_cost || 0
+          const unitLabor = data.labor_cost || 0
+
           return {
             id: item.id,
-            material_cost: data.material_cost || 0,
-            labor_cost: data.labor_cost || 0,
+            material_cost: unitMaterial * qty,
+            labor_cost: unitLabor * qty,
             confidence_score: data.confidence_score,
             ai_reasoning: data.reasoning,
             pricing_source: 'ai',
@@ -251,7 +256,11 @@ function ReviewBOQ({ useLatestProject = false }) {
              // Update local state
              updatedLineItems = updatedLineItems.map(i => {
                 if (i.id === result.id) {
-                    return { ...i, ...result, total_cost: result.material_cost + result.labor_cost }
+                    return { 
+                        ...i, 
+                        ...result, 
+                        total_cost: result.material_cost + result.labor_cost // result already has totals now
+                    }
                 }
                 return i
              })
