@@ -28,18 +28,28 @@ serve(async (req) => {
 
     const prompt = `
       You are an expert construction estimator specialized in the New York City market. 
-      I will give you a line item description from a Bill of Quantities (BOQ).
-      
-      Your task is to provide an estimated Unit Price for this item based on current New York City market rates (accounting for high labor costs and union rates).
-      
+      Your goal is to provide accurate *Unit Prices* for construction line items, accounting for the high cost of labor, logistics, and union requirements in NYC.
+
       Item: "${item_name || ''} ${description || ''}"
+
+      CRITICAL PRICING RULES:
+      1. **Renovation & Demolition:** Scan the description for keywords like "Remove", "Replace", "Demo", "Strip", or "Disconnect".
+         - If found, you MUST include labor costs for: 
+           a) Demolition/Removal
+           b) Surface Preparation (e.g., scraping glue, patching holes)
+           c) Disposal/Carting fees
+         - *Note: "Remove and Replace" is significantly more expensive than new installation.*
       
+      2. **Labor Rates:** Use NYC Union / Prevailing Wage rates. Assume labor is the dominant cost factor.
+      
+      3. **Material:** Use current market pricing for materials delivered to NYC.
+
       Return ONLY a raw JSON object (no markdown, no backticks) with this structure:
       {
-        "material_cost": number (estimated material cost per unit in NYC),
-        "labor_cost": number (estimated labor cost per unit in NYC),
-        "confidence_score": number (0-100, where 100 is very standard item, 0 is unknown),
-        "reasoning": string (short explanation of your assumption, max 1 sentence)
+        "material_cost": number, // Price per unit
+        "labor_cost": number,    // Price per unit (include demo/prep here if applicable)
+        "confidence_score": number, // 0-100 (100 = very standard item, 0 = unknown)
+        "reasoning": string      // Explain your logic. Explicitly state if you included demo/prep costs.
       }
     `
 
