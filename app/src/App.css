@@ -28,7 +28,7 @@
 /* ... existing styles ... */
 .shell {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 260px minmax(0, 1fr);
   min-height: 100vh;
   gap: 2.5rem;
   padding: 2.5rem 3.5rem;
@@ -36,7 +36,7 @@
 }
 
 .shell.sidebar-closed {
-  grid-template-columns: 0px 1fr;
+  grid-template-columns: 0px minmax(0, 1fr);
   padding-left: 2rem; /* Reduce padding when sidebar is gone */
   gap: 0; /* Remove gap so sidebar truly disappears */
 }
