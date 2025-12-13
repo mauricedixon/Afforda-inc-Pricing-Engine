@@ -107,7 +107,7 @@ function App() {
           ) : (
             <>
               <p className="helper-text">
-                No active project yet. Start a new one to unlock quick actions.
+                No active project yet.
               </p>
               <Link className="pill-link" to="/pricing/new-project">
                 Create Project

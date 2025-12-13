@@ -45,7 +45,7 @@
   background: #ffffff;
   border: 1px solid #e3e8ef;
   border-radius: 1.5rem;
-  padding: 2rem;
+  padding: 1.5rem;
   height: fit-content;
   position: sticky;
   top: 2rem;
@@ -68,7 +68,7 @@
 
 /* Internal wrapper to keep content width stable during collapse */
 .sidebar-content-wrapper {
-  width: 218px; /* 260px - 2*2rem padding - borders roughly */
+  width: 210px; /* 260px - 2*1.5rem padding - borders roughly */
   transition: opacity 0.2s ease;
 }
 
@@ -148,6 +148,11 @@
 
 .sidebar-header {
   margin-bottom: 1.5rem;
+}
+
+.sidebar-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
 }
 
 .sidebar-logo {
