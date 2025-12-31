@@ -77,8 +77,8 @@ function App() {
 
         <div className="sidebar-content-wrapper">
           <div className="sidebar-header">
-            <AffordaLogo className="sidebar-logo" variant="sidebar" />
-            <h1>SmartBid</h1>
+            {/* <AffordaLogo className="sidebar-logo" variant="sidebar" /> */}
+            <h1 className="smartbid-logo-text">SmartBid</h1>
           </div>
 
           <section className="current-project-card">

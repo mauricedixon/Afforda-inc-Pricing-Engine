@@ -155,6 +155,18 @@
   margin: 0;
 }
 
+.smartbid-logo-text {
+  font-size: 2rem !important;
+  font-weight: 800;
+  color: var(--brand-navy);
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--brand-navy) 0%, #2f9be6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  padding-bottom: 0.2rem;
+}
+
 .sidebar-logo {
   width: 160px;
   height: auto;
