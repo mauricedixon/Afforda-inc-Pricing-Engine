@@ -1,6 +1,6 @@
-# Afforda Inc. Pricing Engine (Frontend)
+# Afforda Inc. SmartBid (Frontend)
 
-React + Vite application that powers the MVP Pricing Engine described in the PRD.
+React + Vite application that powers the MVP SmartBid application described in the PRD.
 It will provide:
 
 - Admin tools for uploading labor rates & material prices (CSV/XLSX)
@@ -28,7 +28,7 @@ Vite automatically loads environment variables from `.env.local` files that begi
 
 ### Optional: Mock Data Mode
 
-If you want to demo the Pricing Engine without connecting to Supabase yet, add this flag:
+If you want to demo SmartBid without connecting to Supabase yet, add this flag:
 
 ```
 VITE_USE_MOCK_DATA=true

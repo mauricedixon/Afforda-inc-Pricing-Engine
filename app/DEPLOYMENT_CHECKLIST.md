@@ -70,3 +70,4 @@ After first deployment:
 6. Update Supabase CORS settings
 7. Test!
 
+

@@ -1,6 +1,6 @@
 # Deployment Guide - Render
 
-This guide walks you through deploying the Afforda Pricing Engine to Render.
+This guide walks you through deploying the Afforda SmartBid to Render.
 
 ## Prerequisites
 
@@ -132,4 +132,5 @@ This allows your frontend to make API calls to Supabase.
 - Render Docs: https://render.com/docs
 - Render Support: support@render.com
 - Supabase Docs: https://supabase.com/docs
+
 

@@ -78,7 +78,7 @@ function App() {
         <div className="sidebar-content-wrapper">
           <div className="sidebar-header">
             <AffordaLogo className="sidebar-logo" variant="sidebar" />
-            <h1>Pricing Engine</h1>
+            <h1>SmartBid</h1>
           </div>
 
           <section className="current-project-card">
