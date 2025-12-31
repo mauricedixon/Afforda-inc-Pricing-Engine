@@ -41,7 +41,8 @@ function ProposalView({ project, items, onClose }) {
 
         <header className="proposal-header">
           <div className="proposal-brand">
-            <AffordaLogo className="proposal-logo" />
+            {/* <AffordaLogo className="proposal-logo" /> */}
+            <h1 className="smartbid-logo-text" style={{fontSize: '2.5rem'}}>SmartBid</h1>
           </div>
           <div className="proposal-meta">
             <p>{today}</p>
