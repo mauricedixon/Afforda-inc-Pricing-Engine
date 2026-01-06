@@ -19,3 +19,4 @@ create index if not exists line_item_components_item_idx
 alter table public.project_line_items 
 add column if not exists is_composite boolean default false;
 
+

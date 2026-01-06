@@ -69,7 +69,7 @@ function UploadBOQ({ useLatestProject = false }) {
         customAliases: {
           description: ['description', 'detail', 'item', 'scope'],
           unit: ['unit', 'units'],
-          qty: ['qty', 'quantity'],
+          qty: ['qty', 'quantity', 'qty_', 'qty__', 'qty.'],
           labor_type: ['labor_type', 'labour_type', 'labor', 'labor type', 'labour type'],
           unit_price: ['unit_price', 'unit_rate', 'unit_cost'],
           material_amount: ['material', 'material_cost', 'material_amount'],

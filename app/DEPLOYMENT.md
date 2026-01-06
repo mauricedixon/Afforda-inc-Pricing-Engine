@@ -134,3 +134,4 @@ This allows your frontend to make API calls to Supabase.
 - Supabase Docs: https://supabase.com/docs
 
 
+
