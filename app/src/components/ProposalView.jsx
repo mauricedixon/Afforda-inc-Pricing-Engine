@@ -116,7 +116,7 @@ function ProposalView({ project, items, onClose }) {
               </tr>
             </thead>
             <tbody>
-              {items.slice(0, 30).map((item) => (
+              {items.map((item) => (
                 <tr key={`${item.id}-${item.line_number}`}>
                   <td>{item.description}</td>
                   <td>{item.quantity}</td>
@@ -125,11 +125,11 @@ function ProposalView({ project, items, onClose }) {
               ))}
             </tbody>
           </table>
-          {items.length > 30 && (
+          {/* {items.length > 30 && (
             <p className="proposal-footnote">
               Showing first 30 lines. Full export available upon request.
             </p>
-          )}
+          )} */}
         </section>
       </div>
     </div>
