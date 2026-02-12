@@ -1,5 +1,5 @@
 import './ProposalView.css'
-import AffordaLogo from './AffordaLogo.jsx'
+import FastBidLogo from './FastBidLogo.jsx'
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value ?? 0)
@@ -41,8 +41,8 @@ function ProposalView({ project, items, onClose }) {
 
         <header className="proposal-header">
           <div className="proposal-brand">
-            {/* <AffordaLogo className="proposal-logo" /> */}
-            <h1 className="smartbid-logo-text" style={{fontSize: '2.5rem'}}>SmartBid</h1>
+            {/* <FastBidLogo className="proposal-logo" /> */}
+            <h1 className="fastbid-logo-text" style={{fontSize: '2.5rem'}}>FastBid</h1>
           </div>
           <div className="proposal-meta">
             <p>{today}</p>

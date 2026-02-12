@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const AffordaLogo = ({ className = '', variant = 'default' }) => {
+const FastBidLogo = ({ className = '', variant = 'default' }) => {
   const [imgSrc, setImgSrc] = useState('/logo.png')
   const [hasError, setHasError] = useState(false)
 
@@ -15,7 +15,7 @@ const AffordaLogo = ({ className = '', variant = 'default' }) => {
   if (hasError) {
     return (
       <div 
-        className={`afforda-logo-fallback ${className}`.trim()} 
+        className={`fastbid-logo-fallback ${className}`.trim()} 
         style={{ 
           fontWeight: 'bold', 
           color: '#0f172a',
@@ -27,7 +27,7 @@ const AffordaLogo = ({ className = '', variant = 'default' }) => {
         }}
       >
         <span style={{ fontSize: '1.2em', lineHeight: 1 }}>⟁</span>
-        Afforda Inc.
+        FastBid
       </div>
     )
   }
@@ -35,11 +35,11 @@ const AffordaLogo = ({ className = '', variant = 'default' }) => {
   return (
     <img
       src={imgSrc}
-      alt="Afforda Inc. Logo"
-      className={`afforda-logo ${className}`.trim()}
+      alt="FastBid Logo"
+      className={`fastbid-logo ${className}`.trim()}
       onError={handleError}
     />
   )
 }
 
-export default AffordaLogo
+export default FastBidLogo

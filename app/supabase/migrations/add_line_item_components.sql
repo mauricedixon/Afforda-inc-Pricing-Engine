@@ -20,3 +20,4 @@ alter table public.project_line_items
 add column if not exists is_composite boolean default false;
 
 
+

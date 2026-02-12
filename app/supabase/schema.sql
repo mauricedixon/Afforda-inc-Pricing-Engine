@@ -1,4 +1,4 @@
--- Afforda Inc. SmartBid
+-- FastBid
 -- Database schema for Supabase (PostgreSQL)
 -- Run this file inside the Supabase SQL editor or via `psql`.
 

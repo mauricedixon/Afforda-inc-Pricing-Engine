@@ -1,6 +1,6 @@
-# Afforda Inc. SmartBid (Frontend)
+# FastBid (Frontend)
 
-React + Vite application that powers the MVP SmartBid application described in the PRD.
+React + Vite application that powers the MVP FastBid application described in the PRD.
 It will provide:
 
 - Admin tools for uploading labor rates & material prices (CSV/XLSX)
@@ -28,7 +28,7 @@ Vite automatically loads environment variables from `.env.local` files that begi
 
 ### Optional: Mock Data Mode
 
-If you want to demo SmartBid without connecting to Supabase yet, add this flag:
+If you want to demo FastBid without connecting to Supabase yet, add this flag:
 
 ```
 VITE_USE_MOCK_DATA=true

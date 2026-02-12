@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { supabase } from './services/supabaseClient.js'
 import { getLatestProjectId } from './utils/storage.js'
 import { isMockMode } from './mockData.js'
-import AffordaLogo from './components/AffordaLogo.jsx'
+import FastBidLogo from './components/FastBidLogo.jsx'
 import './App.css'
 
 const primaryLinks = [
@@ -77,8 +77,8 @@ function App() {
 
         <div className="sidebar-content-wrapper">
           <div className="sidebar-header">
-            {/* <AffordaLogo className="sidebar-logo" variant="sidebar" /> */}
-            <h1 className="smartbid-logo-text">SmartBid</h1>
+            {/* <FastBidLogo className="sidebar-logo" variant="sidebar" /> */}
+            <h1 className="fastbid-logo-text">FastBid</h1>
           </div>
 
           <section className="current-project-card">
