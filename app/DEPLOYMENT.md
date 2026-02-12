@@ -22,7 +22,16 @@ Make sure your code is committed and pushed to your Git repository. Render will 
 4. Select your repository
 5. Render should auto-detect the `render.yaml` configuration
 
-### 3. Configure Environment Variables
+### 3. Configure Root Directory (Important!)
+
+Since the code is inside the `app/` folder, you must tell Render where to look:
+
+1.  In the Render dashboard, go to **Settings**.
+2.  Scroll down to **Build & Deploy**.
+3.  Set **Root Directory** to: `app`
+4.  Save changes.
+
+### 4. Configure Environment Variables
 
 In the Render dashboard, go to **Environment** section and add:
 

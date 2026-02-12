@@ -3,6 +3,7 @@ services:
     name: afforda-pricing-engine
     env: static
     buildCommand: npm install && npm run build
+    startCommand: npm run start
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
     envVars:
